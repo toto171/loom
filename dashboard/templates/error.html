@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — Loom{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<div class="card">
+  <pre>{{ detail }}</pre>
+  {% if show_revalidate and spec %}
+  <p>This is a below-the-safety-line swap. Re-run with re-validation to acknowledge and record it:</p>
+  <form method="post" action="/run/revalidate">
+    <input type="hidden" name="spec_path" value="{{ spec }}">
+    <input type="hidden" name="scenario" value="{{ scenario or '' }}">
+    <button type="submit">Re-run with --revalidate</button>
+  </form>
+  {% endif %}
+  <p style="margin-top:12px;"><a class="btn sec" href="/">← Back</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Loom — dashboard{% endblock %}
+{% block content %}
+<h1>Compose · check · simulate · monitor · assure</h1>
+<p class="muted">Declare a vehicle as swappable subsystems behind safety-carrying
+contracts, simulate against a physics plant, and check composition — emitting an
+assurance case + SBOM as you compose.</p>
+<p><a class="btn" href="/compose">+ Compose a vehicle</a></p>
+
+<h2>Module catalog</h2>
+<div class="grid">
+  {% for sub, impls in subsystems.items() %}
+  <div class="card">
+    <strong>{{ sub }}</strong>
+    <table>
+      <tr><th>impl</th><th>safety</th><th>license</th></tr>
+      {% for i in impls %}
+      <tr>
+        <td><code>{{ i.impl }}</code></td>
+        <td><span class="badge {{ 'asil' if i.belowLine else 'qm' }}">{{ i.safetyLevel }}</span></td>
+        <td class="muted">{{ i.license }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endfor %}
+</div>
+
+<h2>Specs</h2>
+<div class="card">
+  <table>
+    <tr><th>spec</th><th>scenario</th><th></th><th></th></tr>
+    {% for spec in specs %}
+    <tr>
+      <td><code>{{ spec }}</code></td>
+      <td>
+        <form method="post" action="/run/spec" style="display:flex;gap:8px;align-items:center;">
+          <input type="hidden" name="spec" value="{{ spec }}">
+          <select name="scenario">
+            {% for s in scenarios %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+          <label style="margin:0;display:inline;"><input type="checkbox" name="revalidate" value="true"> revalidate</label>
+          <button type="submit">Run</button>
+        </form>
+      </td>
+      <td><button class="sec" hx-get="/check?spec={{ spec }}" hx-target="#chk-{{ loop.index }}" hx-swap="innerHTML">Check</button></td>
+      <td></td>
+    </tr>
+    <tr><td colspan="4"><div id="chk-{{ loop.index }}"></div></td></tr>
+    {% endfor %}
+  </table>
+  <p class="muted">“Check” runs the static contract checker (signals, units, timing, assume/guarantee, license).</p>
+</div>
+
+<h2>Recent runs</h2>
+<div class="card">
+  {% if runs %}
+  <table>
+    <tr><th>run</th><th>vehicle</th><th>scenario</th><th>plant</th><th>violations</th><th>assurance</th></tr>
+    {% for r in runs %}
+    <tr>
+      <td><a href="/runs/{{ r.runId }}"><code>{{ r.runId }}</code></a></td>
+      <td>{{ r.vehicle }}</td>
+      <td>{{ r.scenario }}</td>
+      <td>{{ r.plant }}</td>
+      <td>{% if r.violations %}<span class="pill-bad">{{ r.violations|length }}</span>{% else %}<span class="pill-ok">0</span>{% endif %}</td>
+      <td>{% if r.assurance.defeatedGoals %}<span class="pill-bad">{{ r.assurance.defeatedGoals|length }} defeated</span>{% else %}<span class="pill-ok">all supported</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">No runs yet — compose a vehicle or run a spec above.</p>{% endif %}
+</div>
+{% endblock %}

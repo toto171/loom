@@ -1,0 +1,27 @@
+apiVersion: loom/v0
+kind: Contract
+module: hmi.custom
+version: 0.1.0
+license: Apache-2.0
+safetyLevel: QM               # above the safety line -> swapping it in is free (no gate)
+timing:
+  periodMs: 100
+  deadlineMs: 50
+signals:
+  provides:
+    - path: Vehicle.Cabin.HMI.IsLowBatteryWarningActive
+  requires:
+    - path: Vehicle.Powertrain.TractionBattery.StateOfCharge.Current
+      unit: percent
+failureModes:
+  - id: display_stale
+    detect: "now - last_update_s > 1.0"
+    effect: degraded
+    mitigation: "show stale-data indicator on the cluster"
+assume:
+  - "Vehicle.Powertrain.TractionBattery.StateOfCharge.Current is available"
+guarantee:
+  - "low-battery warning reflects the latest reported SoC each period"
+ai:
+  isAiComponent: false
+sbomRef: sbom/hmi.custom.cdx.json

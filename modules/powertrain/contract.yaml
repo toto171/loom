@@ -1,0 +1,32 @@
+apiVersion: loom/v0
+kind: Contract
+module: powertrain.default
+version: 0.1.0
+license: Apache-2.0
+safetyLevel: ASIL-B
+timing:
+  periodMs: 10
+  deadlineMs: 5
+signals:
+  provides:
+    - path: Vehicle.Powertrain.ElectricMotor.Torque
+      unit: Nm
+  requires:
+    - path: Vehicle.ADAS.CruiseControl.SpeedSet
+      unit: km/h
+    - path: Vehicle.Speed
+      unit: km/h
+failureModes:
+  - id: torque_command_saturated
+    detect: "abs(torque_nm) >= max_torque_nm"
+    effect: degraded
+    mitigation: "clamp to torque envelope; flag reduced acceleration authority"
+assume:
+  - "Vehicle.ADAS.CruiseControl.SpeedSet within 0 and 130"
+guarantee:
+  - "commanded torque stays within the declared torque envelope"
+odd:
+  speedMaxKph: 130
+ai:
+  isAiComponent: false
+sbomRef: sbom/powertrain.default.cdx.json

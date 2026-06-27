@@ -1,0 +1,35 @@
+apiVersion: loom/v0
+kind: Contract
+module: adas.adas_stub
+version: 0.1.0
+license: Apache-2.0
+safetyLevel: ASIL-B
+timing:
+  periodMs: 20
+  deadlineMs: 15
+signals:
+  provides:
+    - path: Vehicle.ADAS.LaneKeepingAssist.IsEngaged
+  requires:
+    - path: Vehicle.Speed
+      unit: km/h
+    - path: Vehicle.ADAS.CruiseControl.IsActive
+failureModes:
+  - id: odd_exit_undetected
+    detect: "speed_kph > odd_speed_max_kph and lka_engaged"
+    effect: hazardous
+    mitigation: "disengage LKA and request driver takeover on ODD exit"
+bindings:
+  speed_kph: signal:Vehicle.Speed
+  odd_speed_max_kph: const:80
+  lka_engaged: signal:Vehicle.ADAS.LaneKeepingAssist.IsEngaged
+assume:
+  - "Vehicle.Speed is available and plausible within the declared ODD"
+guarantee:
+  - "LaneKeepingAssist engages only while inside the declared ODD"
+odd:
+  speedMaxKph: 80
+  weather: [clear, light_rain]
+ai:
+  isAiComponent: false   # stub: exercises the contract, not a real AI driver
+sbomRef: sbom/adas.adas_stub.cdx.json

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Runs — Loom{% endblock %}
+{% block content %}
+<h1>Runs</h1>
+<div class="card">
+  {% if runs %}
+  <table>
+    <tr><th>run</th><th>vehicle</th><th>scenario</th><th>plant</th><th>swaps</th><th>violations</th><th>assurance</th></tr>
+    {% for r in runs %}
+    <tr>
+      <td><a href="/runs/{{ r.runId }}"><code>{{ r.runId }}</code></a></td>
+      <td>{{ r.vehicle }}</td>
+      <td>{{ r.scenario }}</td>
+      <td>{{ r.plant }}</td>
+      <td>{% if r.swaps %}{{ r.swaps|length }}{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td>{% if r.violations %}<span class="pill-bad">{{ r.violations|length }}</span>{% else %}<span class="pill-ok">0</span>{% endif %}</td>
+      <td>{% if r.assurance.defeatedGoals %}<span class="pill-bad">{{ r.assurance.defeatedGoals|length }} defeated</span>{% else %}<span class="pill-ok">all supported</span>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">No runs yet.</p>{% endif %}
+</div>
+{% endblock %}

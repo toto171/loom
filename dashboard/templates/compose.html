@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Compose — Loom{% endblock %}
+{% block content %}
+<h1>Compose a vehicle</h1>
+<p class="muted">Pick an implementation for each subsystem (default-or-swap), a plant
+model, and a scenario. The run goes through the static check + safety-line gate
+before the sim — a below-line (ASIL-*) swap vs the last-validated baseline needs
+re-validation.</p>
+
+<form method="post" action="/run/compose" class="card">
+  <div class="row">
+    <div>
+      <label>Vehicle name</label>
+      <input name="vehicle_name" value="toy-ev-l7">
+    </div>
+    <div>
+      <label>Vehicle class</label>
+      <input name="vehicle_class" value="M1" size="6">
+    </div>
+    <div>
+      <label>Plant model</label>
+      <select name="plant">
+        {% for p in plants %}<option value="{{ p }}" {{ 'selected' if p=='longitudinal' else '' }}>{{ p }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Scenario</label>
+      <select name="scenario">
+        {% for s in scenarios %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <h2>Subsystems</h2>
+  <table>
+    <tr><th>subsystem</th><th>implementation</th></tr>
+    {% for sub, impls in subsystems.items() %}
+    <tr>
+      <td><strong>{{ sub }}</strong></td>
+      <td>
+        <select name="impl_{{ sub }}">
+          {% for i in impls %}
+          <option value="{{ i.impl }}">{{ i.impl }} — {{ i.safetyLevel }}</option>
+          {% endfor %}
+          <option value="(omit)">(omit subsystem)</option>
+        </select>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <div class="row" style="margin-top:16px;">
+    <label style="margin:0;display:inline;"><input type="checkbox" name="revalidate" value="true"> --revalidate (acknowledge a below-line swap)</label>
+    <button type="submit">Check + gate + run →</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,25 @@
+{
+  "vehicle": "toy-ev-l7",
+  "subsystems": {
+    "bms": {
+      "impl": "default",
+      "safetyLevel": "ASIL-C"
+    },
+    "powertrain": {
+      "impl": "default",
+      "safetyLevel": "ASIL-B"
+    },
+    "adas": {
+      "impl": "adas_stub",
+      "safetyLevel": "ASIL-B"
+    },
+    "hmi": {
+      "impl": "default",
+      "safetyLevel": "QM"
+    },
+    "body": {
+      "impl": "default",
+      "safetyLevel": "QM"
+    }
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://loom.dev/schema/contract.schema.json",
+  "title": "Loom Module Contract",
+  "description": "Machine-readable interface of a module INCLUDING safety semantics: signals, timing budget, declared failure modes, assume/guarantee predicates, safety level, ODD, and AI metadata.",
+  "type": "object",
+  "required": ["apiVersion", "kind", "module", "version", "license", "safetyLevel", "timing", "signals"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "const": "loom/v0" },
+    "kind": { "const": "Contract" },
+    "module": {
+      "type": "string",
+      "description": "Fully-qualified module id, '<subsystem>.<impl>', e.g. bms.default.",
+      "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+    },
+    "version": { "type": "string", "minLength": 1 },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "description": "SPDX license identifier (e.g. Apache-2.0, MIT, GPL-3.0-or-later). Reference/default modules must be OSI-approved open source; proprietary swaps may use any SPDX id (e.g. LicenseRef-Proprietary). Feeds the SBOM at M5."
+    },
+    "safetyLevel": {
+      "description": "ISO 26262 ASIL or QM. Defines the safety line: QM is above-line (free swap); ASIL-* is below-line (gated swap).",
+      "enum": ["QM", "ASIL-A", "ASIL-B", "ASIL-C", "ASIL-D"]
+    },
+    "timing": {
+      "type": "object",
+      "required": ["periodMs", "deadlineMs"],
+      "additionalProperties": false,
+      "properties": {
+        "periodMs": { "type": "number", "exclusiveMinimum": 0, "description": "How often the module runs." },
+        "deadlineMs": { "type": "number", "exclusiveMinimum": 0, "description": "Worst-case compute budget within the period." },
+        "resource": { "type": "string", "description": "Compute resource (core/zonal-ECU) this module is allocated to. Modules sharing a resource must have total utilization (sum of deadline/period) <= 1. Omit to assume an independently-scheduled resource." }
+      }
+    },
+    "signals": {
+      "type": "object",
+      "required": ["provides"],
+      "additionalProperties": false,
+      "properties": {
+        "provides": {
+          "type": "array",
+          "description": "VSS paths this module writes.",
+          "items": { "$ref": "#/$defs/signal" }
+        },
+        "requires": {
+          "type": "array",
+          "description": "VSS paths this module reads.",
+          "items": { "$ref": "#/$defs/signal" }
+        }
+      }
+    },
+    "failureModes": {
+      "type": "array",
+      "description": "Declared, machine-readable failure modes; feed FMEA + runtime monitors.",
+      "items": {
+        "type": "object",
+        "required": ["id", "detect", "effect"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "detect": { "type": "string", "minLength": 1, "description": "Safe-eval predicate evaluated against signals + plant ground truth." },
+          "effect": { "enum": ["no_effect", "degraded", "loss_of_function", "hazardous"] },
+          "mitigation": { "type": "string" }
+        }
+      }
+    },
+    "assume": {
+      "type": "array",
+      "description": "Preconditions this module needs from the rest of the system.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "guarantee": {
+      "type": "array",
+      "description": "What this module promises if its assumptions hold.",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "odd": {
+      "type": "object",
+      "description": "Operational design domain assumptions (ISO 21448).",
+      "additionalProperties": true
+    },
+    "ai": {
+      "type": "object",
+      "description": "Present only for AI/ML modules (ISO/PAS 8800 + SOTIF hooks).",
+      "required": ["isAiComponent"],
+      "additionalProperties": true,
+      "properties": {
+        "isAiComponent": { "type": "boolean" },
+        "triggeringConditions": { "type": "array", "items": { "type": "string" } },
+        "datasetGovernance": { "type": "object" }
+      }
+    },
+    "sbomRef": {
+      "type": "string",
+      "description": "Relative path to this module's CycloneDX SBOM."
+    },
+    "bindings": {
+      "type": "object",
+      "description": "Runtime-monitor variable bindings (M3): variable name -> source. Source is 'signal:<VSS path>' (read from the bus), 'truth:<key>' (plant ground truth), or 'const:<number>'. Used to evaluate failureMode detect predicates live.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]*$" },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^(signal|truth|const):.+$"
+      }
+    }
+  },
+  "$defs": {
+    "signal": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "VSS dotted path, e.g. Vehicle.Powertrain.TractionBattery.StateOfCharge.Current.",
+          "pattern": "^Vehicle(\\.[A-Za-z0-9]+)+$"
+        },
+        "unit": { "type": "string", "description": "Unit of the signal value (e.g. percent, celsius)." },
+        "optional": { "type": "boolean", "description": "For a required signal: if true, an unresolved producer is a warning rather than an error (the consumer has a safe default)." }
+      }
+    }
+  }
+}

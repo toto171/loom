@@ -1,0 +1,27 @@
+apiVersion: loom/v0
+kind: Contract
+module: body.default
+version: 0.1.0
+license: Apache-2.0
+safetyLevel: QM
+timing:
+  periodMs: 50
+  deadlineMs: 20
+signals:
+  provides:
+    - path: Vehicle.Body.Lights.Brake.IsActive
+  requires:
+    - path: Vehicle.Speed
+      unit: km/h
+failureModes:
+  - id: brake_light_stuck_off
+    detect: "decel_kph_s > brake_threshold and not brake_light_active"
+    effect: degraded
+    mitigation: "fall back to deceleration-only brake-light trigger"
+assume:
+  - "Vehicle.Speed is available each period"
+guarantee:
+  - "brake lights activate within one period of deceleration onset"
+ai:
+  isAiComponent: false
+sbomRef: sbom/body.default.cdx.json

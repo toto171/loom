@@ -1,0 +1,16 @@
+# Like urban_drive but injects a battery-temperature sensor dropout mid-run.
+# The `faults` block is parsed now but only acted on by the fault injector at M3.
+name: sensor_dropout_test
+description: Urban drive with a battery-temperature sensor dropout to trip the BMS monitor.
+durationS: 20
+stepMs: 100
+profile:
+  - { t: 0,  targetSpeedKph: 0 }
+  - { t: 4,  targetSpeedKph: 40 }
+  - { t: 12, targetSpeedKph: 40 }
+  - { t: 20, targetSpeedKph: 0 }
+faults:
+  - kind: dropout                                              # dropout | stuck | latency | crash
+    target: Vehicle.Powertrain.TractionBattery.Temperature.Average
+    fromS: 8
+    toS: 12

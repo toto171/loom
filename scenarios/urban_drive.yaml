@@ -1,0 +1,13 @@
+# A short urban drive cycle. v0 uses durationS + stepMs to drive the sim loop;
+# `profile` (target speed over time) is consumed by the plant model at M1+.
+name: urban_drive
+description: Short low-speed urban drive cycle.
+durationS: 20
+stepMs: 100            # 10 Hz sim tick
+profile:              # time (s) -> target speed (km/h); plant tracks this at M1+
+  - { t: 0,  targetSpeedKph: 0 }
+  - { t: 3,  targetSpeedKph: 30 }
+  - { t: 8,  targetSpeedKph: 50 }
+  - { t: 14, targetSpeedKph: 20 }
+  - { t: 20, targetSpeedKph: 0 }
+faults: []            # fault injection lands at M3

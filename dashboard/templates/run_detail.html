@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ run.runId }} — Loom{% endblock %}
+{% block content %}
+<h1>Run <code>{{ run.runId }}</code></h1>
+<div class="card row">
+  <div><label>vehicle</label>{{ run.vehicle }} <span class="muted">({{ run.vehicleClass }})</span></div>
+  <div><label>scenario</label>{{ run.scenario }}</div>
+  <div><label>plant</label>{{ run.plant }}</div>
+  <div><label>steps</label>{{ run.steps }} ({{ run.durationS }}s)</div>
+  <div><label>static check</label>{% if run.staticCheck.ok %}<span class="pill-ok">OK</span>{% else %}<span class="pill-bad">FAILED</span>{% endif %}</div>
+</div>
+
+<div class="card">
+  <strong>Modules:</strong>
+  {% for m in run.modules %}<code>{{ m }}</code>{% if not loop.last %}, {% endif %}{% endfor %}
+  {% if run.swaps %}<div style="margin-top:8px;"><strong>Swaps:</strong> {% for s in run.swaps %}<span class="badge asil">{{ s }}</span> {% endfor %}
+    {% if run.revalidation %}<span class="pill-ok">re-validated</span>{% endif %}</div>{% endif %}
+</div>
+
+<h2>Monitor violations</h2>
+<div class="card">
+  {% if run.violations %}
+  <table>
+    <tr><th>module / monitor</th><th>kind</th><th>window</th><th>ticks</th></tr>
+    {% for v in run.violations %}
+    <tr>
+      <td><code>{{ v.module }}</code> / {{ v.monitor }}</td>
+      <td><span class="pill-bad">{{ v.kind }}</span></td>
+      <td>{{ v.firstT }}–{{ v.lastT }}s</td>
+      <td>{{ v.ticks }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<span class="pill-ok">no violations</span>{% endif %}
+  {% if run.skippedMonitors %}<p class="muted">Skipped monitors (unbindable predicates): {{ run.skippedMonitors|length }}</p>{% endif %}
+</div>
+
+<h2>Assurance case (GSN)</h2>
+<div class="card">
+  {% if run.assurance.defeatedGoals %}
+    <p><span class="pill-bad">{{ run.assurance.defeatedGoals|length }} defeated goal(s)</span>
+       of {{ run.assurance.goals }}: {% for g in run.assurance.defeatedGoals %}<code>{{ g }}</code> {% endfor %}</p>
+  {% else %}
+    <p><span class="pill-ok">all {{ run.assurance.goals }} goals supported</span></p>
+  {% endif %}
+  {% if gsn_mermaid %}<pre class="mermaid">{{ gsn_mermaid }}</pre>{% endif %}
+  <p class="muted">Skeleton / starting-point assurance — not a certified safety case.
+     SBOM: {{ run.assurance.sbomComponents }} components (vehicle.cdx.json).</p>
+</div>
+
+<h2>Changed signals</h2>
+<div class="card">
+  {% if run.changedSignals %}
+  <table>
+    <tr><th>VSS path</th><th>first</th><th>last</th></tr>
+    {% for path, fl in run.changedSignals.items() %}
+    <tr><td><code>{{ path }}</code></td><td>{{ fl.first }}</td><td>{{ fl.last }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<span class="muted">none</span>{% endif %}
+</div>
+
+<h2 x-data="{ open:false }"><button class="sec" @click="open=!open">Composition report</button></h2>
+<div class="card" x-show="open" x-cloak><pre>{{ report_text }}</pre></div>
+{% endblock %}

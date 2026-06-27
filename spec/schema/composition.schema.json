@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://loom.dev/schema/composition.schema.json",
+  "title": "Loom Composition Spec",
+  "description": "Declares which subsystems compose a vehicle and which implementation each uses (default-or-swap), plus global plant/bus/scenario parameters.",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "plant", "bus", "subsystems", "scenarios"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "const": "loom/v0" },
+    "kind": { "const": "Vehicle" },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Vehicle name (also the safety-baseline lock key + run-id prefix). No path separators or special characters.",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._-]*$"
+        },
+        "vehicleClass": {
+          "type": "string",
+          "description": "UNECE vehicle category, e.g. M1, N1, L7.",
+          "pattern": "^[A-Z][0-9A-Z]*$"
+        }
+      }
+    },
+    "plant": {
+      "type": "object",
+      "required": ["impl"],
+      "additionalProperties": false,
+      "properties": {
+        "impl": { "type": "string", "minLength": 1, "description": "Plant model implementation id (e.g. longitudinal, motoquant)." },
+        "params": { "type": "object" }
+      }
+    },
+    "bus": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["vss"] },
+        "vssRelease": {
+          "type": "string",
+          "description": "COVESA VSS catalog release pinned for reproducibility, e.g. v4.0."
+        }
+      }
+    },
+    "subsystems": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Map of subsystem name -> implementation selection.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["impl"],
+        "additionalProperties": false,
+        "properties": {
+          "impl": { "type": "string", "minLength": 1, "description": "Implementation id for this subsystem (default-or-swap)." },
+          "params": { "type": "object" }
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Scenario names to drive (resolved from scenarios/<name>.yaml)."
+    }
+  }
+}

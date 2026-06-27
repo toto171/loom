@@ -1,0 +1,23 @@
+# Minimal M0 composition: a single subsystem (bms) so `loom run` brings up
+# the in-process shim broker + one module and produces a trace with one VSS
+# signal changing. Grows into the full example as more modules land (M1+).
+apiVersion: loom/v0
+kind: Vehicle
+metadata:
+  name: toy-ev-m0
+  vehicleClass: M1
+plant:
+  impl: longitudinal
+  params:
+    massKg: 1500
+    wheelRadiusM: 0.31
+    batteryKwh: 40
+bus:
+  type: vss
+  vssRelease: "v4.0"
+subsystems:
+  bms:
+    impl: default
+    params: { cellChemistry: NMC, packSeriesParallel: "96s2p" }
+scenarios:
+  - urban_drive

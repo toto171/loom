@@ -1,0 +1,33 @@
+# Same vehicle as vehicle.example.yaml (metadata.name: toy-ev-l7) but with the
+# HMI swapped from default to the custom implementation. Because HMI is QM (above
+# the safety line), running this after the example proceeds WITHOUT --revalidate
+# (no gate) — the above-line half of the M4 acceptance.
+apiVersion: loom/v0
+kind: Vehicle
+metadata:
+  name: toy-ev-l7
+  vehicleClass: M1
+plant:
+  impl: longitudinal
+  params:
+    massKg: 1500
+    wheelRadiusM: 0.31
+    batteryKwh: 40
+bus:
+  type: vss
+  vssRelease: "v4.0"
+subsystems:
+  bms:
+    impl: default
+    params: { cellChemistry: NMC, packSeriesParallel: "96s2p" }
+  powertrain:
+    impl: default
+  adas:
+    impl: adas_stub
+    params: { odd: { weather: [clear, light_rain], speedMaxKph: 80 } }
+  hmi:
+    impl: custom             # <-- swapped (QM, above the line -> no gate)
+  body:
+    impl: default
+scenarios:
+  - urban_drive

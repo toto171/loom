@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Loom{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+  </script>
+  <style>
+    :root { --bg:#0f1115; --card:#1a1d24; --line:#2a2f3a; --fg:#e6e9ef; --mut:#9aa4b2;
+            --accent:#5b9cff; --ok:#3fb950; --warn:#d29922; --bad:#f85149; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:14px/1.5 ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif;
+           background:var(--bg); color:var(--fg); }
+    header { display:flex; gap:18px; align-items:baseline; padding:14px 24px;
+             border-bottom:1px solid var(--line); background:var(--card); }
+    header .brand { font-weight:700; font-size:18px; color:var(--accent); letter-spacing:.5px; }
+    header a { color:var(--fg); text-decoration:none; }
+    header a:hover { color:var(--accent); }
+    header .ver { color:var(--mut); font-size:12px; margin-left:auto; }
+    main { max-width:1100px; margin:0 auto; padding:24px; }
+    h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:16px; margin:24px 0 10px; }
+    .muted { color:var(--mut); }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+            padding:16px; margin:12px 0; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { color:var(--mut); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+    code,pre { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    pre { background:#0b0d11; border:1px solid var(--line); border-radius:8px; padding:12px;
+          overflow:auto; font-size:12.5px; }
+    .badge { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11px;
+             font-weight:600; border:1px solid var(--line); }
+    .asil { background:#3a1d22; color:#ff9d96; border-color:#5a2a30; }
+    .qm   { background:#16331f; color:#7ee29a; border-color:#1f4d2e; }
+    .pill-ok { background:#13301c; color:var(--ok); border:1px solid #1f4d2e; padding:2px 9px; border-radius:999px; }
+    .pill-bad{ background:#3a1116; color:var(--bad); border:1px solid #5a2026; padding:2px 9px; border-radius:999px; }
+    a.btn,button { background:var(--accent); color:#0b0d11; border:none; border-radius:7px;
+            padding:7px 13px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-block; }
+    a.btn.sec,button.sec { background:#222630; color:var(--fg); border:1px solid var(--line); }
+    select,input { background:#0b0d11; color:var(--fg); border:1px solid var(--line);
+            border-radius:7px; padding:6px 9px; font:inherit; }
+    label { display:block; margin:10px 0 4px; color:var(--mut); font-size:12px; }
+    .row { display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+    .mermaid { background:#f6f8fa; border-radius:8px; padding:10px; }
+    [x-cloak] { display:none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">⊹ Loom</span>
+    <a href="/">Home</a>
+    <a href="/compose">Compose</a>
+    <a href="/runs">Runs</a>
+    <span class="ver">v{{ version or '' }} · dev/validation tooling, not a certified runtime</span>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

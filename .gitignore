@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Loom generated run artifacts
+runs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

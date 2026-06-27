@@ -1,0 +1,34 @@
+# Loom Composition Spec — full example (the documented §5.1 reference).
+# `loom validate spec/vehicle.example.yaml` must pass (schema-valid).
+# Note: a `loom run` of this spec requires every referenced subsystem to be
+# implemented. At M0 only `bms` exists, so use spec/vehicle.m0.yaml to run.
+apiVersion: loom/v0
+kind: Vehicle
+metadata:
+  name: toy-ev-l7
+  vehicleClass: M1          # M1 passenger, N1 LCV, L7 quadricycle, etc.
+plant:
+  impl: longitudinal        # v0 default; later: motoquant
+  params:
+    massKg: 1500
+    wheelRadiusM: 0.31
+    batteryKwh: 40
+bus:
+  type: vss
+  vssRelease: "v4.0"        # COVESA VSS catalog release pinned for reproducibility
+subsystems:
+  bms:
+    impl: default           # <-- default-or-swap happens here
+    params: { cellChemistry: NMC, packSeriesParallel: "96s2p" }
+  powertrain:
+    impl: default
+  adas:
+    impl: adas_stub
+    params: { odd: { weather: [clear, light_rain], speedMaxKph: 80 } }
+  hmi:
+    impl: default
+  body:
+    impl: default
+scenarios:
+  - urban_drive
+  - sensor_dropout_test

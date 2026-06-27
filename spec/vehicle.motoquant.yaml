@@ -1,0 +1,35 @@
+# Same vehicle + modules as vehicle.example.yaml, but with the plant switched
+# from the v0 longitudinal model to the higher-fidelity motoquant model. This is
+# the M6 plant-swap demo: only `plant.impl` changes — no module/code change — and
+# the same scenarios run through the richer engine (RK4 dynamics + thermal battery,
+# so Temperature.Average now varies over the cycle).
+apiVersion: loom/v0
+kind: Vehicle
+metadata:
+  name: toy-ev-l7
+  vehicleClass: M1
+plant:
+  impl: motoquant          # <-- swapped (was: longitudinal); no other change
+  params:
+    massKg: 1500
+    wheelRadiusM: 0.31
+    batteryKwh: 40
+bus:
+  type: vss
+  vssRelease: "v4.0"
+subsystems:
+  bms:
+    impl: default
+    params: { cellChemistry: NMC, packSeriesParallel: "96s2p" }
+  powertrain:
+    impl: default
+  adas:
+    impl: adas_stub
+    params: { odd: { weather: [clear, light_rain], speedMaxKph: 80 } }
+  hmi:
+    impl: default
+  body:
+    impl: default
+scenarios:
+  - urban_drive
+  - sensor_dropout_test

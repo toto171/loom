@@ -1,0 +1,22 @@
+# Forward-looking M1 topology for the ComposeOrchestrator. NOT used at M0.
+#
+# M0 runs everything in one process over the in-process ShimBus
+# (`loom run spec/vehicle.m0.yaml`) — no containers required. This file sketches
+# the distributed M1 setup: a networked KUKSA databroker that module services
+# publish/subscribe VSS signals through. The per-service wiring (depends_on,
+# broker address, scenario driver) is completed with M1.
+services:
+  databroker:
+    image: ghcr.io/eclipse-kuksa/kuksa-databroker:latest
+    command: ["--insecure"]
+    ports:
+      - "55555:55555"
+
+  bms:
+    build:
+      context: .
+      dockerfile: modules/bms/Dockerfile
+    depends_on:
+      - databroker
+    environment:
+      KUKSA_ADDRESS: databroker:55555

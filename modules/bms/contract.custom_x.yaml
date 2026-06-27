@@ -1,0 +1,43 @@
+apiVersion: loom/v0
+kind: Contract
+module: bms.custom_x
+version: 0.1.0
+license: Apache-2.0
+safetyLevel: ASIL-C            # below the safety line -> swapping it in is gated
+timing:
+  periodMs: 10
+  deadlineMs: 8
+signals:
+  provides:
+    - path: Vehicle.Powertrain.TractionBattery.StateOfCharge.Current
+      unit: percent
+  requires:
+    - path: Vehicle.Powertrain.TractionBattery.Charging.IsCharging
+    - path: Vehicle.Powertrain.ElectricMotor.Power
+      unit: W
+    - path: Vehicle.Powertrain.TractionBattery.GrossCapacity
+      unit: kWh
+    - path: Vehicle.Powertrain.TractionBattery.Temperature.Average
+      unit: celsius
+failureModes:
+  - id: soc_estimate_drift
+    detect: "abs(soc_reported - soc_truth) > 5"
+    effect: degraded
+    mitigation: "fall back to coulomb-counting; raise warning signal"
+  - id: temp_sensor_fault
+    detect: "temp < -20 or temp > 60"
+    effect: loss_of_function
+    mitigation: "use a model-based temperature estimate; derate charging until the sensor recovers"
+bindings:
+  soc_reported: signal:Vehicle.Powertrain.TractionBattery.StateOfCharge.Current
+  soc_truth: truth:soc
+  temp: signal:Vehicle.Powertrain.TractionBattery.Temperature.Average
+assume:
+  - "Vehicle.Powertrain.TractionBattery.Temperature.Average between -20 and 60"
+guarantee:
+  - "soc_reported within 3% of soc_truth under declared ODD"
+odd:
+  ambientTempC: [-20, 60]
+ai:
+  isAiComponent: false
+sbomRef: sbom/bms.custom_x.cdx.json

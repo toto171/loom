@@ -1,0 +1,31 @@
+# Deliberately broken composition for the M2 static-checker demo: it omits the
+# bms subsystem, so nothing produces the battery State-of-Charge that the hmi
+# module requires. The checker fails with two precise errors from this one root
+# cause: signal_resolution (hmi requires an unproduced SoC) and assume_guarantee
+# (hmi's "SoC is available" assumption is left undischarged).
+apiVersion: loom/v0
+kind: Vehicle
+metadata:
+  name: toy-ev-broken
+  vehicleClass: M1
+plant:
+  impl: longitudinal
+  params:
+    massKg: 1500
+    wheelRadiusM: 0.31
+    batteryKwh: 40
+bus:
+  type: vss
+  vssRelease: "v4.0"
+subsystems:
+  powertrain:
+    impl: default
+  adas:
+    impl: adas_stub
+    params: { odd: { speedMaxKph: 80 } }
+  hmi:
+    impl: default
+  body:
+    impl: default
+scenarios:
+  - urban_drive

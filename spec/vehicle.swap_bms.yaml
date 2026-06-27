@@ -1,0 +1,34 @@
+# Same vehicle as vehicle.example.yaml (metadata.name: toy-ev-l7) but with the
+# BMS swapped from the default to the custom_x implementation. Because BMS is
+# ASIL-C (below the safety line), running this after the example will be REFUSED
+# unless --revalidate is passed (M4 safety-line gate).
+apiVersion: loom/v0
+kind: Vehicle
+metadata:
+  name: toy-ev-l7
+  vehicleClass: M1
+plant:
+  impl: longitudinal
+  params:
+    massKg: 1500
+    wheelRadiusM: 0.31
+    batteryKwh: 40
+bus:
+  type: vss
+  vssRelease: "v4.0"
+subsystems:
+  bms:
+    impl: custom_x           # <-- swapped (was: default)
+    params: { cellChemistry: NMC, packSeriesParallel: "96s2p" }
+  powertrain:
+    impl: default
+  adas:
+    impl: adas_stub
+    params: { odd: { weather: [clear, light_rain], speedMaxKph: 80 } }
+  hmi:
+    impl: default
+  body:
+    impl: default
+scenarios:
+  - urban_drive
+  - sensor_dropout_test
