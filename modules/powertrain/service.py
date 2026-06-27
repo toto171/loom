@@ -28,10 +28,10 @@ class PowertrainDefault(Module):
         self.kp = float(self.params.get("speedKp", 200.0))  # Nm per (m/s) of error
         self.max_torque_nm = float(self.params.get("maxTorqueNm", 300.0))
 
-    def start(self, bus: "Bus") -> None:
+    def start(self, bus: Bus) -> None:
         bus.publish(TORQUE_PATH, 0.0, unit="Nm", producer=self.module_id)
 
-    def step(self, t: float, dt: float, bus: "Bus") -> None:
+    def step(self, t: float, dt: float, bus: Bus) -> None:
         set_kph = float(bus.read(SPEED_SET_PATH, 0.0) or 0.0)
         speed_kph = float(bus.read(SPEED_PATH, 0.0) or 0.0)
         error_mps = (set_kph - speed_kph) / 3.6

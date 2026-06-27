@@ -4,8 +4,6 @@ the safety-line gate (a below-line swap is refused with 409 until re-validated).
 import shutil
 import warnings
 
-import pytest
-
 warnings.simplefilter("ignore")  # starlette/httpx testclient deprecation noise
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -60,14 +58,13 @@ def test_composed_run_end_to_end_produces_assurance():
 
 def test_check_rejects_path_traversal():
     # A crafted spec param must not read files outside spec/.
-    for bad in ["../HANDOFF.md", "../scenarios/urban_drive.yaml", "../pyproject.toml"]:
+    for bad in ["../README.md", "../scenarios/urban_drive.yaml", "../pyproject.toml"]:
         r = client.get("/check", params={"spec": bad})
         assert r.status_code == 200
         assert "invalid spec path" in r.text
 
 
 def test_composed_vehicle_name_is_sanitized_no_path_escape():
-    from loom import catalog as _cat
     from loom.paths import repo_root
     # a path-injection name must be neutralized to a safe lock/run-dir name.
     r = client.post("/run/compose", data=_compose_form("ignored", vehicle_name="../../pwned-test"),

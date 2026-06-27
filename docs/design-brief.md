@@ -1,7 +1,17 @@
-# HANDOFF — Loom
+# Loom — Founding Design Brief (the original handoff)
 
 **Open Vehicle Composition & Virtual-Validation Framework**
-*(working codename "Loom" — rename freely)*
+*(working codename "Loom")*
+
+> ℹ️ **Status of this document.** This is the *founding design brief* that scoped Loom
+> (M0–M6). It is preserved as a historical / rationale document — the "why now," the
+> standards landscape, the schema intent, and the per-milestone acceptance criteria.
+> **It is not the current source of truth for the as-built system** — for that, start at the
+> [README](../README.md) and the living docs under [`docs/`](README.md)
+> ([architecture](architecture.md), [contracts](contracts.md), [safety model](safety-model.md)).
+> Throughout the code, comments cite this document as **"HANDOFF §N"**; the section numbers
+> below are unchanged so those citations still resolve here. The repository map in §7 is the
+> *initial plan*; see [architecture.md](architecture.md) for the as-built layout.
 
 > A framework where you declare a vehicle as a composition of swappable subsystems
 > (autopilot, ADAS, BMS, powertrain, HMI, body…), each behind a **contract that carries
@@ -10,8 +20,7 @@
 > safety line, modules are freely mix-and-match; below it, swaps trigger re-validation gates.
 
 This document is written for an implementing agent (Claude Code) and assumes no access to
-the conversation that produced it. It is self-contained. Read it top to bottom once before
-writing code.
+the conversation that produced it. It is self-contained.
 
 ---
 
@@ -318,7 +327,7 @@ SBOM metadata).
 ```
 loom/
 ├── README.md
-├── HANDOFF.md                      # this file
+├── docs/design-brief.md            # this file (was HANDOFF.md at the repo root)
 ├── pyproject.toml
 ├── docker-compose.yml
 ├── spec/

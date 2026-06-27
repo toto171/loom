@@ -26,11 +26,11 @@ class Plant(ABC):
     def __init__(self, params: dict[str, Any] | None = None) -> None:
         self.params: dict[str, Any] = dict(params or {})
 
-    def start(self, bus: "Bus") -> None:
+    def start(self, bus: Bus) -> None:
         """Optional hook: seed ground-truth signals before the first tick."""
 
     @abstractmethod
-    def step(self, t: float, dt: float, bus: "Bus") -> None:
+    def step(self, t: float, dt: float, bus: Bus) -> None:
         """Integrate the plant one tick and publish ground-truth signals."""
 
     def stop(self) -> None:

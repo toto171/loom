@@ -38,13 +38,13 @@ class BmsDefault(Module):
         self.aux_load_w = float(self.params.get("auxLoadW", 300.0))  # electronics/HVAC baseline
         self.charge_power_w = float(self.params.get("chargePowerW", 7000.0))
 
-    def _publish(self, bus: "Bus") -> None:
+    def _publish(self, bus: Bus) -> None:
         bus.publish(SOC_PATH, round(self.soc, 4), unit="percent", producer=self.module_id)
 
-    def start(self, bus: "Bus") -> None:
+    def start(self, bus: Bus) -> None:
         self._publish(bus)
 
-    def step(self, t: float, dt: float, bus: "Bus") -> None:
+    def step(self, t: float, dt: float, bus: Bus) -> None:
         # Read the battery thermal sensor (plant ground truth); hold last good value
         # if the sensor has dropped out (an M3 monitor flags the dropout separately).
         temp = bus.read(TEMP_PATH)
@@ -80,7 +80,7 @@ class BmsCustomX(BmsDefault):
         super().__init__(params)
         self.bias_pct = float(self.params.get("socBiasPct", 8.0))
 
-    def _publish(self, bus: "Bus") -> None:
+    def _publish(self, bus: Bus) -> None:
         reported = max(0.0, min(100.0, self.soc + self.bias_pct))
         bus.publish(SOC_PATH, round(reported, 4), unit="percent", producer=self.module_id)
 

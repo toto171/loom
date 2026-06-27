@@ -18,8 +18,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "httpx>=0.27"]
+# Web dashboard (M6): the FastAPI + HTMX/Alpine compose-run-view UI.
 dashboard = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "python-multipart>=0.0.9", "jinja2>=3.1"]
+# Distributed orchestrator (M6): the KUKSA databroker bus adapter.
+compose = ["kuksa-client>=0.4"]
+# Everything needed to run the full test suite + lint. Self-references the
+# feature extras so `pip install -e ".[dev]"` alone makes `pytest` green.
+dev = ["loom[dashboard,compose]", "pytest>=8.0", "httpx>=0.27", "ruff>=0.6"]
+
+[project.urls]
+Homepage = "https://github.com/toto171/loom"
+Repository = "https://github.com/toto171/loom"
 
 [project.scripts]
 loom = "loom.cli:main"
@@ -30,3 +39,22 @@ include = ["loom*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I import-sorting, B bugbear, UP pyupgrade.
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = [
+    "E501",   # line length: no autoformatter in-tree yet; don't gate on it.
+    "B027",   # empty non-abstract methods are intentional optional lifecycle hooks.
+    "UP042",  # str+Enum kept over StrEnum for stable str() / comparison semantics.
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests intentionally import-after-warning-filter and use module fixtures.
+"tests/*" = ["E402"]
+# Typer declares CLI params via Argument()/Option() calls in defaults (its idiom).
+"loom/cli.py" = ["B008"]

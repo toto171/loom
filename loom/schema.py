@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from enum import Enum
-from functools import lru_cache
+from functools import cache
 from typing import Any
 
 from jsonschema import Draft202012Validator
@@ -16,7 +16,7 @@ class SchemaName(str, Enum):
     CONTRACT = "contract.schema.json"
 
 
-@lru_cache(maxsize=None)
+@cache
 def _validator(name: SchemaName) -> Draft202012Validator:
     schema = json.loads((schema_dir() / name.value).read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)

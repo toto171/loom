@@ -42,7 +42,7 @@ class Monitor:
     effect: str
 
 
-def resolve_bindings(bindings: dict[str, str], bus: "Bus", truth: dict[str, Any] | None) -> dict[str, Any]:
+def resolve_bindings(bindings: dict[str, str], bus: Bus, truth: dict[str, Any] | None) -> dict[str, Any]:
     """Resolve each ``variable -> source`` binding to a concrete value.
 
     Sources: ``signal:<VSS path>`` (bus, None if absent/dropped),
@@ -70,7 +70,7 @@ class MonitorEngine:
     violations: list[Violation] = field(default_factory=list)
 
     @classmethod
-    def from_modules(cls, modules) -> "MonitorEngine":
+    def from_modules(cls, modules) -> MonitorEngine:
         monitors: list[Monitor] = []
         skipped: list[dict] = []
         for m in modules:
@@ -101,7 +101,7 @@ class MonitorEngine:
                 )
         return cls(monitors=monitors, skipped=skipped)
 
-    def evaluate(self, t: float, bus: "Bus", truth: dict[str, Any] | None = None) -> list[Violation]:
+    def evaluate(self, t: float, bus: Bus, truth: dict[str, Any] | None = None) -> list[Violation]:
         fired: list[Violation] = []
         for mon in self.monitors:
             variables = resolve_bindings(mon.bindings, bus, truth)

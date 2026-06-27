@@ -11,8 +11,8 @@ import sys
 from typing import Any
 
 from loom.errors import LoomError
-from loom.plant.base import Plant
 from loom.paths import plant_dir
+from loom.plant.base import Plant
 
 
 def load_plant(impl: str, params: dict[str, Any] | None = None) -> Plant:

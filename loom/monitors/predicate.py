@@ -139,7 +139,7 @@ def _eval(node: ast.AST, variables: dict[str, Any]) -> Any:
 
     if isinstance(node, ast.Compare):
         left = _eval(node.left, variables)
-        for op, comparator in zip(node.ops, node.comparators):
+        for op, comparator in zip(node.ops, node.comparators, strict=True):
             right = _eval(comparator, variables)
             if isinstance(op, ast.Is):
                 res = _noneify(left) is _noneify(right)

@@ -31,14 +31,14 @@ class InProcessOrchestrator(Orchestrator):
     def run(
         self,
         *,
-        modules: "list[Module]",
-        bus: "Bus",
-        plant: "Plant | None",
-        scenario: "Scenario",
-        trace: "Trace",
-        stimulus: "ScenarioStimulus | None" = None,
-        faults: "FaultInjector | None" = None,
-        monitors: "MonitorEngine | None" = None,
+        modules: list[Module],
+        bus: Bus,
+        plant: Plant | None,
+        scenario: Scenario,
+        trace: Trace,
+        stimulus: ScenarioStimulus | None = None,
+        faults: FaultInjector | None = None,
+        monitors: MonitorEngine | None = None,
     ) -> RunResult:
         return drive(
             name=self.name, modules=modules, bus=bus, plant=plant, scenario=scenario,

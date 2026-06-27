@@ -70,7 +70,7 @@ def test_regen_recovers_energy_during_deceleration():
     # pure-discharge model: find a window where SoC increases.
     _comp, _scen, _modules, _result, trace = _run_example()
     socs = [r["signals"][SOC] for r in trace.rows]
-    assert any(b > a for a, b in zip(socs, socs[1:]))
+    assert any(b > a for a, b in zip(socs, socs[1:], strict=False))
 
 
 def test_adas_engages_only_within_odd():

@@ -27,7 +27,7 @@ class KuksaBus(Bus):
         self._producers: dict[str, str | None] = {}
         self._known: set[str] = set()
 
-    def connect(self) -> "KuksaBus":
+    def connect(self) -> KuksaBus:
         """Open the gRPC connection to the databroker (no-op if a client was injected)."""
         if self._client is None:
             from kuksa_client.grpc import VSSClient  # imported lazily; needs a live broker

@@ -25,17 +25,17 @@ if TYPE_CHECKING:
 _EPS = 1e-9  # tolerance for float tick accumulation at window boundaries
 
 
-def _active(fault: "Fault", t: float) -> bool:
+def _active(fault: Fault, t: float) -> bool:
     return fault.from_s - _EPS <= t <= fault.to_s + _EPS
 
 
 class FaultInjector:
-    def __init__(self, faults: "list[Fault]") -> None:
+    def __init__(self, faults: list[Fault]) -> None:
         self.faults = list(faults)
         self._stuck_value: dict[str, object] = {}
         self._delay_buffer: dict[str, list] = {}
 
-    def apply(self, t: float, bus: "Bus") -> None:
+    def apply(self, t: float, bus: Bus) -> None:
         for fault in self.faults:
             if fault.kind == "crash" or not fault.target:
                 continue

@@ -58,7 +58,7 @@ class LongitudinalPlant(Plant):
         self.truth_soc = float(self.params.get("initialSocPercent", 80.0))
         self.aux_load_w = float(self.params.get("auxLoadW", 300.0))
 
-    def start(self, bus: "Bus") -> None:
+    def start(self, bus: Bus) -> None:
         bus.publish(SPEED_PATH, 0.0, unit="km/h", producer="plant.longitudinal")
         bus.publish(POWER_PATH, 0.0, unit="W", producer="plant.longitudinal")
         # Static ground-truth pack capacity, consumed by the BMS for SoC integration.
@@ -70,7 +70,7 @@ class LongitudinalPlant(Plant):
             BATTERY_TEMP_PATH, self.battery_temp_c, unit="celsius", producer="plant.longitudinal"
         )
 
-    def step(self, t: float, dt: float, bus: "Bus") -> None:
+    def step(self, t: float, dt: float, bus: Bus) -> None:
         torque_nm = float(bus.read(TORQUE_PATH, 0.0) or 0.0)
         v = self.speed_mps
 

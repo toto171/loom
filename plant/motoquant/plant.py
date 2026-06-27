@@ -68,7 +68,7 @@ class MotoquantPlant(Plant):
         self.battery_temp_c = self.ambient_temp_c
         self.truth_soc = float(self.params.get("initialSocPercent", 80.0))
 
-    def start(self, bus: "Bus") -> None:
+    def start(self, bus: Bus) -> None:
         bus.publish(SPEED_PATH, 0.0, unit="km/h", producer="plant.motoquant")
         bus.publish(POWER_PATH, 0.0, unit="W", producer="plant.motoquant")
         bus.publish(GROSS_CAPACITY_PATH, self.battery_kwh, unit="kWh", producer="plant.motoquant")
@@ -81,7 +81,7 @@ class MotoquantPlant(Plant):
         f_resist = f_drag + f_roll if moving else 0.0
         return (f_traction - f_resist) / self.mass_kg
 
-    def step(self, t: float, dt: float, bus: "Bus") -> None:
+    def step(self, t: float, dt: float, bus: Bus) -> None:
         torque_nm = float(bus.read(TORQUE_PATH, 0.0) or 0.0)
         f_traction = torque_nm * self.gear_ratio / self.wheel_radius_m
         v = self.speed_mps

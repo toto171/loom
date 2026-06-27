@@ -32,7 +32,7 @@ def validate(
         data = yaml.safe_load(Path(spec).read_text(encoding="utf-8"))
     except FileNotFoundError:
         typer.secho(f"spec not found: {spec}", fg=typer.colors.RED, bold=True)
-        raise typer.Exit(2)
+        raise typer.Exit(2) from None
 
     errors = validate_composition_data(data)
     if errors:
@@ -54,7 +54,7 @@ def check(
         modules = resolve_modules(comp)
     except LoomError as exc:
         typer.secho(f"check failed: {exc}", fg=typer.colors.RED, bold=True)
-        raise typer.Exit(2)
+        raise typer.Exit(2) from None
 
     report = check_composition(
         comp.name, modules, plant=plant, stimulus_provides=ScenarioStimulus.provides
@@ -83,15 +83,15 @@ def run(
     except StaticCheckFailed as exc:
         typer.secho(f"static check FAILED for {spec} — aborting run", fg=typer.colors.RED, bold=True)
         typer.echo(render_report(exc.report))
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except GateRefused as exc:
         typer.secho(f"swap gate REFUSED for {spec}", fg=typer.colors.RED, bold=True)
         typer.echo(exc.decision.refused_reason)
         typer.echo("re-run with --revalidate to acknowledge and record the swap.")
-        raise typer.Exit(3)
+        raise typer.Exit(3) from None
     except LoomError as exc:
         typer.secho(f"run failed: {exc}", fg=typer.colors.RED, bold=True)
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     s = outcome.summary
     out = outcome.run_dir

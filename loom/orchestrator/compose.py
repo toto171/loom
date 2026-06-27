@@ -39,14 +39,14 @@ class ComposeOrchestrator(Orchestrator):
     def run(
         self,
         *,
-        modules: "list[Module]",
-        bus: "Bus",
-        plant: "Plant | None",
-        scenario: "Scenario",
-        trace: "Trace",
-        stimulus: "ScenarioStimulus | None" = None,
-        faults: "FaultInjector | None" = None,
-        monitors: "MonitorEngine | None" = None,
+        modules: list[Module],
+        bus: Bus,
+        plant: Plant | None,
+        scenario: Scenario,
+        trace: Trace,
+        stimulus: ScenarioStimulus | None = None,
+        faults: FaultInjector | None = None,
+        monitors: MonitorEngine | None = None,
     ) -> RunResult:
         from loom.bus.kuksa import KuksaBus
 

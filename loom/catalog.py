@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from loom.compose.resolve import list_impls, resolve_module
-from loom.paths import modules_dir, plant_dir, runs_dir, scenarios_dir, repo_root
+from loom.paths import modules_dir, plant_dir, repo_root, runs_dir, scenarios_dir
 
 
 def list_subsystems() -> dict[str, list[dict]]:

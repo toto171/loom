@@ -12,7 +12,8 @@ re-validation), assurance generation (a CycloneDX vehicle SBOM + a GSN
 assurance-case skeleton), a higher-fidelity Motoquant plant behind the FMI
 boundary, a FastAPI + HTMX web dashboard (compose · run · view), and a distributed
 Compose/KUKSA orchestrator (the networked broker behind the same Bus interface).
-The full M0–M6 roadmap from HANDOFF.md §8 is implemented.
+The full M0–M6 roadmap from the founding design brief (docs/design-brief.md) §8
+is implemented.
 """
 
 __version__ = "0.0.1"

@@ -26,10 +26,10 @@ class HmiDefault(Module):
         super().__init__(params)
         self.low_battery_threshold_pct = float(self.params.get("lowBatteryThresholdPct", 20.0))
 
-    def start(self, bus: "Bus") -> None:
+    def start(self, bus: Bus) -> None:
         bus.publish(LOW_BATTERY_WARNING_PATH, False, producer=self.module_id)
 
-    def step(self, t: float, dt: float, bus: "Bus") -> None:
+    def step(self, t: float, dt: float, bus: Bus) -> None:
         soc = float(bus.read(SOC_PATH, 100.0) or 100.0)
         warn = soc < self.low_battery_threshold_pct
         bus.publish(LOW_BATTERY_WARNING_PATH, bool(warn), producer=self.module_id)

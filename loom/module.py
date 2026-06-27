@@ -26,11 +26,11 @@ class Module(ABC):
     def module_id(self) -> str:
         return f"{self.subsystem}.{self.impl}"
 
-    def start(self, bus: "Bus") -> None:
+    def start(self, bus: Bus) -> None:
         """Optional hook: declare/seed signals before the first tick."""
 
     @abstractmethod
-    def step(self, t: float, dt: float, bus: "Bus") -> None:
+    def step(self, t: float, dt: float, bus: Bus) -> None:
         """Advance one tick at sim time ``t`` seconds over interval ``dt`` seconds."""
 
     def stop(self) -> None:

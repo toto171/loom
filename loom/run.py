@@ -9,10 +9,10 @@ returns a structured RunOutcome. Failures are raised as domain exceptions
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 import yaml
 
@@ -103,7 +103,7 @@ def execute_run(
         monitors=monitors,
     )
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
     run_id = f"{stamp}-{comp.name}"
     out = runs_dir() / run_id
     out.mkdir(parents=True, exist_ok=True)

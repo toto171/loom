@@ -50,7 +50,7 @@ class Gsn:
     def to_dict(self) -> dict:
         return {
             "nodes": [{"id": n.id, "type": n.type, "text": n.text, "status": n.status} for n in self.nodes],
-            "links": [{"from": l.source, "to": l.target, "kind": l.kind} for l in self.links],
+            "links": [{"from": lk.source, "to": lk.target, "kind": lk.kind} for lk in self.links],
         }
 
 

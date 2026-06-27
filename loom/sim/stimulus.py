@@ -31,7 +31,7 @@ def interpolate_profile(profile: list[dict], t: float, key: str = "targetSpeedKp
         return points[0][1]
     if t >= points[-1][0]:
         return points[-1][1]
-    for (t0, v0), (t1, v1) in zip(points, points[1:]):
+    for (t0, v0), (t1, v1) in zip(points, points[1:], strict=False):
         if t0 <= t <= t1:
             if t1 == t0:
                 return v1
@@ -48,10 +48,10 @@ class ScenarioStimulus:
         {"path": CHARGING_PATH, "unit": None},
     ]
 
-    def __init__(self, scenario: "Scenario") -> None:
+    def __init__(self, scenario: Scenario) -> None:
         self.scenario = scenario
 
-    def apply(self, t: float, bus: "Bus") -> None:
+    def apply(self, t: float, bus: Bus) -> None:
         target_kph = interpolate_profile(self.scenario.profile, t)
         bus.publish(SPEED_SET_PATH, round(target_kph, 4), unit="km/h", producer=PRODUCER)
         bus.publish(CRUISE_ACTIVE_PATH, True, producer=PRODUCER)

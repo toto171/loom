@@ -24,14 +24,14 @@ if TYPE_CHECKING:
 def drive(
     *,
     name: str,
-    modules: "list[Module]",
-    bus: "Bus",
-    plant: "Plant | None",
-    scenario: "Scenario",
-    trace: "Trace",
-    stimulus: "ScenarioStimulus | None" = None,
-    faults: "FaultInjector | None" = None,
-    monitors: "MonitorEngine | None" = None,
+    modules: list[Module],
+    bus: Bus,
+    plant: Plant | None,
+    scenario: Scenario,
+    trace: Trace,
+    stimulus: ScenarioStimulus | None = None,
+    faults: FaultInjector | None = None,
+    monitors: MonitorEngine | None = None,
 ) -> RunResult:
     """Drive the scenario over ``bus``. Tick order:
     stimulus -> plant.step -> faults.apply -> modules.step -> monitors -> record.

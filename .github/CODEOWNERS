@@ -1,0 +1,13 @@
+# Code owners — auto-requested as reviewers on matching paths.
+# See https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything.
+*                       @toto171
+
+# Safety- and security-critical paths warrant extra scrutiny (CONTRIBUTING §5).
+/loom/safety/           @toto171
+/loom/monitors/         @toto171
+/loom/contracts/        @toto171
+/spec/schema/           @toto171
+/locks/                 @toto171
+/.github/               @toto171

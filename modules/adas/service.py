@@ -30,10 +30,10 @@ class AdasStub(Module):
         odd = self.params.get("odd", {}) or {}
         self.speed_max_kph = float(odd.get("speedMaxKph", 80.0))
 
-    def start(self, bus: "Bus") -> None:
+    def start(self, bus: Bus) -> None:
         bus.publish(LKA_ENGAGED_PATH, False, producer=self.module_id)
 
-    def step(self, t: float, dt: float, bus: "Bus") -> None:
+    def step(self, t: float, dt: float, bus: Bus) -> None:
         speed_kph = float(bus.read(SPEED_PATH, 0.0) or 0.0)
         cruise_active = bool(bus.read(CRUISE_ACTIVE_PATH, False))
         in_odd = 0.0 <= speed_kph <= self.speed_max_kph

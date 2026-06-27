@@ -6,11 +6,11 @@ current working directory) and can be overridden with the ``LOOM_ROOT`` env var.
 from __future__ import annotations
 
 import os
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 
-@lru_cache(maxsize=None)
+@cache
 def repo_root() -> Path:
     env = os.environ.get("LOOM_ROOT")
     if env:
