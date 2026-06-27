@@ -34,7 +34,10 @@ Repository = "https://github.com/toto171/loom"
 loom = "loom.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["loom*"]
+# Install both the framework and the dashboard so `import dashboard` works after a
+# plain install (not only when the repo root happens to be on sys.path) — this is
+# what makes `pytest` (console script) and `uvicorn dashboard.app:app` work anywhere.
+include = ["loom*", "dashboard*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
