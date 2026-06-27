@@ -21,6 +21,10 @@ All notable changes to Loom are documented here. The format follows
 - **Reproducible installs.** `pyproject.toml` now declares `kuksa-client` (was imported by
   the distributed-orchestrator tests but undeclared), and the `dev` extra self-references
   `dashboard,compose` so `pip install -e ".[dev]"` alone makes the full suite importable.
+- **Clean-checkout CI.** Installed the `dashboard` package (`packages.find` includes
+  `dashboard*`) so the bare `pytest` console script — and `uvicorn dashboard.app:app` — work
+  without the repo root on `sys.path`. CI (ruff + pytest on Linux & Windows) is green; the
+  workflow uses `actions/checkout@v5` + `actions/setup-python@v6` (Node 24).
 - Exception chaining in the CLI (`raise … from None`) and explicit `zip(strict=…)` at call
   sites, surfaced by the new linter.
 
