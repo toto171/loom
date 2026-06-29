@@ -15,7 +15,7 @@ from pathlib import Path
 from cyclonedx.model import Property
 from cyclonedx.model.bom import Bom
 from cyclonedx.model.component import Component, ComponentType
-from cyclonedx.model.license import DisjunctiveLicense
+from cyclonedx.model.license import DisjunctiveLicense, LicenseExpression
 from cyclonedx.output import make_outputter
 from cyclonedx.schema import OutputFormat, SchemaVersion
 from cyclonedx.spdx import is_supported_id
@@ -24,6 +24,11 @@ from cyclonedx.spdx import is_supported_id
 def _license(spdx: str | None):
     if not spdx:
         return None
+    # A compound SPDX expression (e.g. "BSD-3-Clause AND MIT") belongs in the
+    # dedicated CycloneDX license.expression field, not license.name. Single SPDX
+    # ids never contain these operators, so the vehicle/module path is unaffected.
+    if any(op in spdx for op in (" AND ", " OR ", " WITH ")):
+        return LicenseExpression(value=spdx)
     # A recognized SPDX id goes in license.id; anything else (e.g.
     # LicenseRef-Proprietary) must use license.name to stay schema-valid.
     if is_supported_id(spdx):
@@ -122,11 +127,15 @@ def module_sbom_ref(contract) -> str:
     return f"sbom/{contract.module}.cdx.json"
 
 
-def write_vehicle_sboms(out_dir, vehicle_name, vehicle_class, modules, plant_impl=None) -> dict:
-    """Write the aggregate vehicle SBOM plus one per-module SBOM under ``out_dir``.
+def write_vehicle_sboms(
+    out_dir, vehicle_name, vehicle_class, modules, plant_impl=None, *, include_toolchain=True
+) -> dict:
+    """Write the SBOM bundle under ``out_dir``: the aggregate vehicle SBOM, one
+    per-module SBOM, and (optionally) the toolchain dependency SBOM.
 
-    Returns ``{"vehicle": <rel path>, "modules": [<rel paths>], "vehicleJson": <str>}``.
-    Used by both the run pipeline and the standalone ``loom sbom`` command.
+    Returns ``{"vehicle", "modules", "toolchain", "vehicleJson"}`` (``toolchain`` is
+    ``None`` if it was skipped or could not be built). Used by both the run pipeline
+    and the standalone ``loom sbom`` command.
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -139,4 +148,22 @@ def write_vehicle_sboms(out_dir, vehicle_name, vehicle_class, modules, plant_imp
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(build_module_sbom(m), encoding="utf-8")
         refs.append(ref)
-    return {"vehicle": "vehicle.cdx.json", "modules": refs, "vehicleJson": vehicle_json}
+
+    toolchain_ref = None
+    if include_toolchain:
+        # The transitive supply-chain SBOM complements the module-level vehicle
+        # bill. Guarded: a package-metadata hiccup must never fail a vehicle run.
+        try:
+            from loom.assurance.deps import build_toolchain_sbom
+
+            (out_dir / "toolchain.cdx.json").write_text(build_toolchain_sbom(), encoding="utf-8")
+            toolchain_ref = "toolchain.cdx.json"
+        except Exception:  # pragma: no cover - defensive; deps metadata is normally present
+            toolchain_ref = None
+
+    return {
+        "vehicle": "vehicle.cdx.json",
+        "modules": refs,
+        "toolchain": toolchain_ref,
+        "vehicleJson": vehicle_json,
+    }

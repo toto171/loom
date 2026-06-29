@@ -9,7 +9,8 @@ per-module containerization each module service would connect to the same broker
 
 Provisioning: ``run`` uses a KuksaBus if one is passed in (e.g. backed by an
 injected client for testing), otherwise it connects to the configured databroker
-address. Eclipse Ankaios can later replace Compose behind this same interface.
+address. Eclipse Ankaios is the production-grade alternative to Compose behind this
+same interface — see ``loom.orchestrator.ankaios.AnkaiosOrchestrator``.
 """
 from __future__ import annotations
 

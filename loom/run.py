@@ -159,6 +159,7 @@ def execute_run(
         "assurance": {
             "sbomComponents": sbom_component_count(modules, comp.plant_impl),
             "moduleSboms": sboms["modules"],
+            "toolchainSbom": sboms["toolchain"],
             "goals": sum(1 for n in gsn.nodes if n.type == "goal"),
             "defeatedGoals": [n.id for n in gsn.defeated],
         },

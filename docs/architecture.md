@@ -67,7 +67,7 @@ feature, you are almost always adding an implementation behind one of these.
 |---|---|---|---|
 | **`Bus`** | [`loom/bus/base.py`](../loom/bus/base.py) | `ShimBus` (in-process), `KuksaBus` (gRPC databroker) | the signal backbone |
 | **`Plant`** | [`loom/plant/base.py`](../loom/plant/base.py) | `longitudinal` (forward-Euler), `motoquant` (RK4 + thermal) | vehicle physics (FMI-style boundary) |
-| **`Orchestrator`** | [`loom/orchestrator/base.py`](../loom/orchestrator/base.py) | `InProcessOrchestrator`, `ComposeOrchestrator` (KUKSA) | how modules are brought up |
+| **`Orchestrator`** | [`loom/orchestrator/base.py`](../loom/orchestrator/base.py) | `InProcessOrchestrator`, `ComposeOrchestrator` (KUKSA), `AnkaiosOrchestrator` (Eclipse Ankaios) | how modules are brought up |
 | **`Module`** | [`loom/module.py`](../loom/module.py) | the 5 reference subsystems in [`modules/`](../modules) | subsystem behavior |
 | **`Contract`** | [`loom/contracts/model.py`](../loom/contracts/model.py) | one `contract.yaml` per module impl | the safety-carrying interface |
 
@@ -195,6 +195,7 @@ Two deliberate separations worth noting for newcomers:
 | `violations.jsonl` | timestamped runtime monitor violations |
 | `vehicle.cdx.json` | aggregate CycloneDX SBOM (bill of modules + declared licenses) |
 | `sbom/<module>.cdx.json` | per-module CycloneDX SBOM — the artifact each contract's `sbomRef` points at |
+| `toolchain.cdx.json` | transitive CycloneDX SBOM of the Loom runtime dependency tree (the software supply chain) |
 | `assurance.gsn.yaml` / `.mmd` | GSN assurance case (machine-readable + Mermaid) |
 | `revalidation.json` | record of re-validated below-line swaps — present **only** when `--revalidate` was used |
 
@@ -205,7 +206,24 @@ produce byte-identical assurance.
 
 ---
 
-## 7. Where to go next
+## 7. Verification status & remaining work
+
+Loom states scope honestly — what is verified end-to-end vs. what is built but not yet
+exercised on a live runtime. For a contributor picking up the distributed path, this is the map:
+
+| Area | Status |
+|---|---|
+| In-process orchestration (`ShimBus`), both plants, static check, gate, monitors, assurance (vehicle + per-module + toolchain SBOMs, GSN) | **Verified end-to-end** by the deterministic test suite (149 tests) |
+| `ComposeOrchestrator` + `KuksaBus` (the gRPC adapter + tick loop) | **Verified against an injected fake KUKSA client**, proven equivalent to in-process. The **live databroker** (real gRPC) is **not yet exercised** — needs a running Eclipse KUKSA databroker (`docker compose up databroker`, port 55555) seeded with a VSS model that admits Loom's paths |
+| `AnkaiosOrchestrator` + the `loom deploy` manifest | **Verified against fakes** (manifest shape/round-trip + orchestrator equivalence). A live deploy needs the **Ankaios runtime** (`ank-server`/`ank-agent`, Linux) and built per-module images |
+| Per-module container images | Only a placeholder `modules/bms/Dockerfile` exists; **full containerization is the remaining packaging step** shared by the Compose and Ankaios paths |
+| `adas_stub` | Exercises the contract machinery only — a **real perception/planning stack is out of scope** by design (see [design-brief](design-brief.md) §11) |
+
+The distributed orchestrators differ from in-process *only in how the bus is provisioned*
+(same [tick loop](../loom/orchestrator/_loop.py)), so a working broker is the single missing
+ingredient for a live distributed run — not new application code.
+
+## 8. Where to go next
 
 - **Write or change a contract / spec** → [contracts.md](contracts.md)
 - **Add a subsystem, plant, scenario, or checker rule** → [extending.md](extending.md)

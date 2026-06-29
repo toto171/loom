@@ -1,14 +1,15 @@
 # CLI reference — `loom`
 
 The `loom` command is defined in [`loom/cli.py`](../loom/cli.py) (Typer) and installed by
-`pip install -e .`. The `validate`, `check`, `run`, and `sbom` commands take a path to a
-composition spec ([`vehicle.yaml`](contracts.md)); `version` takes no arguments.
+`pip install -e .`. The `validate`, `check`, `run`, `sbom`, and `deploy` commands take a path
+to a composition spec ([`vehicle.yaml`](contracts.md)); `version` takes no arguments.
 
 ```
 loom validate <spec>                 # JSON-Schema validation only
 loom check    <spec>                 # static contract check + report
 loom run      <spec> [--scenario S] [--revalidate]
-loom sbom     <spec> [--out DIR]     # vehicle + per-module CycloneDX SBOMs (no sim)
+loom sbom     <spec> [--out DIR]     # vehicle + per-module + toolchain CycloneDX SBOMs (no sim)
+loom deploy   <spec> [--target ankaios] [--out FILE]   # workload-orchestrator manifest
 loom version
 ```
 
@@ -81,11 +82,15 @@ The exit codes are stable, so the same `loom run` drives both CI and the
 
 ## `loom sbom <spec> [--out DIR]`
 
-Generates the CycloneDX SBOMs for a composition **without** running a simulation — the
-aggregate vehicle SBOM (`vehicle.cdx.json`) plus one per-module SBOM under `sbom/`
-(`sbom/<module>.cdx.json`, the artifact each contract's [`sbomRef`](contracts.md) points at).
-Intended for compliance pipelines and CI that need the bill of modules + declared licenses
-on its own. Scope matches `loom run`: module-level, not a transitive dependency scan.
+Generates the CycloneDX SBOMs for a composition **without** running a simulation:
+
+- `vehicle.cdx.json` — the aggregate **bill of modules** + declared licenses.
+- `sbom/<module>.cdx.json` — one **per-module** SBOM (the artifact each contract's
+  [`sbomRef`](contracts.md) points at). Module-level scope, matching `loom run`.
+- `toolchain.cdx.json` — the **transitive dependency tree** of the Loom runtime (the software
+  supply chain), built from installed package metadata with PURLs + licenses + edges.
+
+Intended for compliance pipelines and CI that need the bills on their own.
 
 | Option | Default | Meaning |
 |---|---|---|
@@ -99,6 +104,33 @@ on its own. Scope matches `loom run`: module-level, not a transitive dependency 
 ```bash
 loom sbom spec/vehicle.example.yaml                 # -> runs/sbom-toy-ev-l7/
 loom sbom spec/vehicle.example.yaml --out build/sbom
+```
+
+---
+
+## `loom deploy <spec> [--target ankaios] [--out FILE]`
+
+Generates a workload-orchestrator deployment manifest for a composition. The default (and
+only) target is **Eclipse Ankaios**: the emitted `ank apply`-shaped YAML (top-level
+`workloads`) has a KUKSA `databroker` workload plus one workload per subsystem, each depending
+on the broker and pointed at it — the same workload set as
+[`docker-compose.yml`](../docker-compose.yml), wired over host networking so the broker is
+reachable without provisioning an inter-container network. Prints to stdout, or writes to
+`--out`. Drives nothing; pairs with [`AnkaiosOrchestrator`](../loom/orchestrator/ankaios.py).
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--target`, `-t` | `ankaios` | workload orchestrator (only `ankaios` today) |
+| `--out`, `-o` | stdout | write the manifest to a file |
+
+| Exit | Meaning |
+|---|---|
+| 0 | manifest emitted |
+| 2 | unknown target, or a load/resolution error |
+
+```bash
+loom deploy spec/vehicle.example.yaml                       # print the Ankaios manifest
+loom deploy spec/vehicle.example.yaml --out state.yaml      # ank apply state.yaml
 ```
 
 ---

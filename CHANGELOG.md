@@ -7,6 +7,18 @@ All notable changes to Loom are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Eclipse Ankaios orchestrator.** A third `Orchestrator` implementation
+  ([`AnkaiosOrchestrator`](loom/orchestrator/ankaios.py)) alongside in-process and
+  Compose/KUKSA — the automotive workload orchestrator that replaces Docker-Compose without
+  touching the bus or tick loop (verified equivalent to in-process against a fake control
+  interface). [`loom/deploy/ankaios.py`](loom/deploy/ankaios.py) renders the Ankaios
+  desired-state manifest (databroker + one workload per subsystem) from a composition, exposed
+  as **`loom deploy <spec> [--target ankaios] [--out FILE]`**.
+- **Transitive toolchain SBOM.** Alongside the module-level vehicle SBOM, `loom run`/`loom sbom`
+  now emit `toolchain.cdx.json` — the installed transitive dependency closure of the Loom
+  runtime (PURLs + licenses + edges), built from installed package metadata via
+  [`loom/assurance/deps.py`](loom/assurance/deps.py). Covers the software-supply-chain axis the
+  module-level bill does not; recorded in `run.json` `assurance.toolchainSbom`.
 - **Per-module SBOMs.** Each contract's `sbomRef` (e.g. `sbom/bms.default.cdx.json`) now
   resolves to a real artifact: alongside the aggregate vehicle SBOM, `loom run` writes one
   CycloneDX SBOM per composed module under `runs/<id>/sbom/`, recorded in `run.json`'s

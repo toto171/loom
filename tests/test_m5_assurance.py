@@ -2,6 +2,7 @@
 and a GSN assurance-case skeleton whose goals are defeated by real failures."""
 import json
 
+from loom.assurance.deps import build_toolchain_sbom, resolve_closure, toolchain_component_count
 from loom.assurance.gsn import build_gsn, render_mermaid
 from loom.assurance.sbom import (
     build_module_sbom,
@@ -172,6 +173,9 @@ def test_execute_run_emits_per_module_sboms_resolving_every_sbomref(tmp_path, mo
     for m in outcome.modules:
         # the contract's declared sbomRef resolves to a real artifact in the run dir
         assert (outcome.run_dir / m.contract.sbom_ref).exists()
+    # the run bundle also carries the transitive toolchain SBOM
+    assert outcome.summary["assurance"]["toolchainSbom"] == "toolchain.cdx.json"
+    assert (outcome.run_dir / "toolchain.cdx.json").exists()
 
 
 def test_module_sbom_ref_and_write_are_independent_of_a_declared_sbomref():
@@ -207,3 +211,104 @@ def test_loom_sbom_cli_writes_vehicle_and_per_module_sboms(tmp_path):
     assert data["bomFormat"] == "CycloneDX"
     # the per-module file is the right module's SBOM, not a stray copy
     assert json.loads(bms.read_text(encoding="utf-8"))["metadata"]["component"]["name"] == "bms.default"
+    # the bundle also carries the transitive toolchain SBOM
+    assert (tmp_path / "toolchain.cdx.json").exists()
+
+
+# --- toolchain (transitive dependency) SBOM, complementing the vehicle bill -----
+
+
+def test_toolchain_sbom_is_a_valid_transitive_cyclonedx_with_purls_and_edges():
+    data = json.loads(build_toolchain_sbom("loom"))
+    assert data["bomFormat"] == "CycloneDX" and data["specVersion"] == "1.6"
+    assert data["metadata"]["component"]["name"] == "loom-toolchain"
+    comps = {c["name"]: c for c in data["components"]}
+    assert {"loom", "typer", "jsonschema", "cyclonedx-python-lib"} <= set(comps)
+    assert comps["typer"]["purl"].startswith("pkg:pypi/typer@")
+    assert "timestamp" not in data["metadata"]
+    assert toolchain_component_count("loom") == len(data["components"])
+
+    # the dependency EDGES are real, not just present (pins the register_dependency
+    # loop, not only resolve_closure): root -> loom, loom -> its installed runtime
+    # deps, and a deeper transitive edge.
+    deps = {d["ref"]: sorted(d.get("dependsOn", [])) for d in data["dependencies"]}
+    assert deps["toolchain:loom"] == ["loom"]
+    assert deps["loom"] == ["cyclonedx-python-lib", "fmpy", "jsonschema", "pyyaml", "typer"]
+    assert "rich" in deps["typer"]
+
+    # licenses are populated across the resolution tiers (id, name, expression)
+    def _lic(name):
+        return (comps[name]["licenses"] or [{}])[0]
+    assert _lic("typer").get("license", {}).get("id") == "MIT"  # PEP 639 expression -> id
+    assert _lic("cyclonedx-python-lib").get("license", {}).get("name") == "Apache Software License"  # OSI tier -> name
+
+
+def test_dist_license_resolves_each_tier_and_skips_dumped_fulltext():
+    from loom.assurance.deps import _dist_license
+
+    class _Meta:
+        def __init__(self, fields=None, classifiers=None):
+            self._f, self._c = fields or {}, classifiers or []
+
+        def get(self, k):
+            return self._f.get(k)
+
+        def get_all(self, k):
+            return self._c if k == "Classifier" else None
+
+    def fake(meta):
+        class _D:
+            metadata = meta
+        return _D()
+
+    # tier 1: PEP 639 License-Expression wins (and is stripped)
+    assert _dist_license(fake(_Meta({"License-Expression": "MIT "}))) == "MIT"
+    # tier 2: OSI classifier when there is no expression
+    assert _dist_license(
+        fake(_Meta(classifiers=["License :: OSI Approved :: Apache Software License"]))
+    ) == "Apache Software License"
+    # tier 3: a short legacy License field
+    assert _dist_license(fake(_Meta({"License": "BSD-3-Clause"}))) == "BSD-3-Clause"
+    # guard: a dumped full-text body (newline or >64 chars) is NOT a license -> None
+    assert _dist_license(fake(_Meta({"License": "A" * 200}))) is None
+    assert _dist_license(fake(_Meta({"License": "line 1\nline 2"}))) is None
+
+
+def test_license_routes_compound_spdx_expression_to_expression_field():
+    from loom.assurance.sbom import _license
+
+    # a compound SPDX expression must use CycloneDX license.expression, not .name
+    assert type(_license("BSD-3-Clause AND MIT")).__name__ == "LicenseExpression"
+    assert type(_license("Apache-2.0 OR MIT")).__name__ == "LicenseExpression"
+    # single ids / names are unchanged (vehicle/module path is unaffected)
+    assert type(_license("Apache-2.0")).__name__ == "DisjunctiveLicense"
+    assert type(_license("LicenseRef-Proprietary")).__name__ == "DisjunctiveLicense"
+
+
+def test_toolchain_sbom_is_deterministic():
+    assert build_toolchain_sbom("loom") == build_toolchain_sbom("loom")  # no timestamp
+
+
+def test_toolchain_closure_is_runtime_only_not_dev_or_dashboard_extras():
+    nodes, edges = resolve_closure("loom")
+    keys = set(nodes)
+    # loom's own direct deps are exactly the 5 declared runtime requirements
+    assert set(edges["loom"]) == {"typer", "jsonschema", "pyyaml", "cyclonedx-python-lib", "fmpy"}
+    # dev/dashboard/compose extras must NOT leak into the runtime closure
+    for extra in ("pytest", "ruff", "httpx", "fastapi", "uvicorn", "kuksa-client"):
+        assert extra not in keys
+
+
+def test_write_vehicle_sboms_emits_toolchain_and_can_skip_it(tmp_path):
+    comp, modules, _ = _setup()
+    result = write_vehicle_sboms(tmp_path, comp.name, comp.vehicle_class, modules, comp.plant_impl)
+    assert result["toolchain"] == "toolchain.cdx.json"
+    data = json.loads((tmp_path / "toolchain.cdx.json").read_text(encoding="utf-8"))
+    assert data["bomFormat"] == "CycloneDX"
+
+    other = tmp_path / "no_toolchain"
+    skipped = write_vehicle_sboms(
+        other, comp.name, comp.vehicle_class, modules, comp.plant_impl, include_toolchain=False
+    )
+    assert skipped["toolchain"] is None
+    assert not (other / "toolchain.cdx.json").exists()

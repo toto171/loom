@@ -33,6 +33,15 @@ plus each module's under `runs/<id>/sbom/`, recorded in `run.json`'s
 `assurance.moduleSboms`. `loom sbom <spec>` produces the same bundle without a sim
 run. Same v0 scope — module-level, not a transitive dependency tree.
 
+Toolchain SBOM (`loom/assurance/deps.py`): the one place a *transitive* tree is
+appropriate. Where the vehicle/per-module SBOMs are the bill of composed modules,
+`build_toolchain_sbom()` walks the installed package metadata from `loom` and emits
+`toolchain.cdx.json` — the real runtime dependency closure (PURLs `pkg:pypi/…`,
+licenses, dependency edges), deterministic and dev/dashboard-extra-free. Together
+they cover both SBOM axes a CRA/UNECE obligation cares about: the application
+composition and the software supply chain. Written next to the vehicle SBOM and
+recorded in `run.json`'s `assurance.toolchainSbom`.
+
 ## 2. GSN assurance-case skeleton (`loom/assurance/gsn.py`)
 
 A Goal Structuring Notation argument, machine-readable YAML first, rendered to

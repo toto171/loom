@@ -12,6 +12,7 @@ from loom.compose.loader import load_composition, validate_composition_data
 from loom.compose.resolve import resolve_modules
 from loom.contracts.checker import check_composition
 from loom.contracts.report import render_report
+from loom.deploy.ankaios import dump_ankaios_manifest
 from loom.errors import GateRefused, LoomError, StaticCheckFailed
 from loom.paths import runs_dir
 from loom.plant.loader import load_plant
@@ -151,10 +152,37 @@ def sbom(
     out_dir = out or (runs_dir() / f"sbom-{comp.name}")
     result = write_vehicle_sboms(out_dir, comp.name, comp.vehicle_class, modules, comp.plant_impl)
     typer.secho(f"sbom {comp.name}", fg=typer.colors.CYAN, bold=True)
-    typer.echo(f"  vehicle : {out_dir / result['vehicle']}")
-    typer.secho(f"  modules : {len(result['modules'])} per-module SBOM(s)", fg=typer.colors.GREEN)
+    typer.echo(f"  vehicle  : {out_dir / result['vehicle']}")
+    typer.secho(f"  modules  : {len(result['modules'])} per-module SBOM(s)", fg=typer.colors.GREEN)
     for ref in result["modules"]:
         typer.echo(f"    {out_dir / ref}")
+    if result["toolchain"]:
+        typer.echo(f"  toolchain: {out_dir / result['toolchain']} (transitive dependency tree)")
+
+
+@app.command()
+def deploy(
+    spec: Path = typer.Argument(..., help="Path to a vehicle composition spec."),
+    target: str = typer.Option("ankaios", "--target", "-t", help="Workload orchestrator (ankaios)."),
+    out: Path = typer.Option(None, "--out", "-o", help="Write the manifest here (default: stdout)."),
+) -> None:
+    """Generate a workload-orchestrator deployment manifest (Ankaios) for a spec."""
+    if target != "ankaios":
+        typer.secho(f"unknown target '{target}' (supported: ankaios)", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(2)
+    try:
+        comp = load_composition(spec)
+        modules = resolve_modules(comp)
+    except LoomError as exc:
+        typer.secho(f"deploy failed: {exc}", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(2) from None
+
+    manifest = dump_ankaios_manifest(comp, modules)
+    if out:
+        Path(out).write_text(manifest, encoding="utf-8")
+        typer.secho(f"deploy {comp.name} -> {out}  (ankaios)", fg=typer.colors.CYAN, bold=True)
+    else:
+        typer.echo(manifest)
 
 
 @app.command()
