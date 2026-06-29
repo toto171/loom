@@ -45,7 +45,8 @@
   {% endif %}
   {% if gsn_mermaid %}<pre class="mermaid">{{ gsn_mermaid }}</pre>{% endif %}
   <p class="muted">Skeleton / starting-point assurance — not a certified safety case.
-     SBOM: {{ run.assurance.sbomComponents }} components (vehicle.cdx.json).</p>
+     SBOM: {{ run.assurance.sbomComponents }} components (vehicle.cdx.json){% if run.assurance.moduleSboms %},
+     plus {{ run.assurance.moduleSboms|length }} per-module SBOM(s) under sbom/{% endif %}.</p>
 </div>
 
 <h2>Changed signals</h2>

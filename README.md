@@ -34,18 +34,21 @@ pip install -e ".[dev]"            # package + dashboard + compose + pytest + ru
 loom validate spec/vehicle.example.yaml                            # schema validation -> OK
 loom check    spec/vehicle.example.yaml                            # static contract check + report
 loom check    spec/vehicle.broken.yaml                             # deliberately broken -> precise failure
+loom check    spec/vehicle.broken_units.yaml                       # unit mismatch (mph vs km/h) -> unit_consistency error
 loom run      spec/vehicle.example.yaml --scenario urban_drive          # 5 modules; speed tracks, SoC drops
 loom run      spec/vehicle.example.yaml --scenario sensor_dropout_test  # temp dropout trips a BMS monitor
 loom run      spec/vehicle.swap_bms.yaml                                # below-line swap -> refused without --revalidate
 loom run      spec/vehicle.swap_hmi.yaml                                # above-line (QM) swap -> free, no gate
 loom run      spec/vehicle.motoquant.yaml                               # swap to the higher-fidelity plant (no module change)
+loom sbom     spec/vehicle.example.yaml                                 # vehicle + per-module CycloneDX SBOMs (no sim)
 
 uvicorn dashboard.app:app          # web dashboard at http://127.0.0.1:8000
-pytest                             # 129 tests (M0–M6)
+pytest                             # 136 tests (M0–M6)
 ```
 
-Each `loom run` writes `runs/<id>/` — trace, report, violations, CycloneDX SBOM, and a GSN
-assurance case. See the [CLI reference](docs/cli.md).
+Each `loom run` writes `runs/<id>/` — trace, report, violations, an aggregate CycloneDX
+vehicle SBOM plus one per-module SBOM (each contract's `sbomRef`), and a GSN assurance case.
+`loom sbom` emits just the SBOMs without a sim. See the [CLI reference](docs/cli.md).
 
 ---
 
@@ -93,7 +96,7 @@ Contributors: [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) �
 
 ## Status — M0–M6 complete
 
-The full roadmap is implemented and green (**129 tests**). Highlights, each with automated
+The full roadmap is implemented and green (**136 tests**). Highlights, each with automated
 acceptance ([design brief §8](docs/design-brief.md)):
 
 - **M0–M1** — composition + contract JSON Schemas, an in-process VSS shim bus, **five
@@ -109,9 +112,10 @@ acceptance ([design brief §8](docs/design-brief.md)):
   at [8–12 s].
 - **M4** — the safety-line swap gate: a below-line BMS swap is refused until `--revalidate`;
   the baseline lives in a committed lock so deleting `runs/` can't reset it.
-- **M5** — assurance generation: a CycloneDX vehicle SBOM + a GSN assurance-case skeleton
-  whose goals **defeat** when their evidence fails (the biased BMS swap defeats `G-bms` and
-  the top-level safety goal).
+- **M5** — assurance generation: a CycloneDX vehicle SBOM (plus one per-module SBOM, the
+  artifact each contract's `sbomRef` points at) + a GSN assurance-case skeleton whose goals
+  **defeat** when their evidence fails (the biased BMS swap defeats `G-bms` and the top-level
+  safety goal). `loom sbom` emits the SBOMs standalone, without a sim run.
 - **M6** — a higher-fidelity **Motoquant** plant (RK4 + thermal) that drops in via
   `plant.impl` with no module change, a **FastAPI + HTMX/Alpine dashboard** (compose · run ·
   view), and a distributed **Compose/KUKSA** orchestrator sharing the same `Bus` interface
@@ -130,9 +134,10 @@ acceptance ([design brief §8](docs/design-brief.md)):
   versioned, not gitignored, so a routine `rm -rf runs/` can't silently reset the gate. The
   trust model is explicit about its boundaries — see [docs/safety-model.md](docs/safety-model.md).
 - **Honest scope, everywhere.** `assume/guarantee` discharge is a producer-presence proxy;
-  the SBOM is module-level (declared licenses), not a transitive scan; the GSN is a generated
-  skeleton. Each is stated in the code and the docs rather than overclaimed. Details in
-  [docs/contracts.md](docs/contracts.md) and [docs/architecture.md](docs/architecture.md).
+  the SBOMs (vehicle + per-module) are module-level (declared licenses), not a transitive
+  scan; the GSN is a generated skeleton. Each is stated in the code and the docs rather than
+  overclaimed. Details in [docs/contracts.md](docs/contracts.md) and
+  [docs/architecture.md](docs/architecture.md).
 
 Built on open standards — COVESA VSS, Eclipse KUKSA, FMI, CycloneDX, GSN, and the ISO
 26262 / 21448 / PAS 8800 vocabulary.

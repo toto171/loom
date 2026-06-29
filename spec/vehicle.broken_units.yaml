@@ -1,0 +1,34 @@
+# Deliberately unit-broken composition for the static-checker demo. It is the
+# toy-ev-l7 example with one change: the powertrain swap `custom_units` declares
+# it reads `Vehicle.Speed` in mph, but the plant publishes that signal in km/h.
+# `loom check spec/vehicle.broken_units.yaml` fails with a single precise
+# `unit_consistency` error; `loom run` aborts before the sim for the same reason.
+apiVersion: loom/v0
+kind: Vehicle
+metadata:
+  name: toy-ev-broken-units
+  vehicleClass: M1
+plant:
+  impl: longitudinal
+  params:
+    massKg: 1500
+    wheelRadiusM: 0.31
+    batteryKwh: 40
+bus:
+  type: vss
+  vssRelease: "v4.0"
+subsystems:
+  bms:
+    impl: default
+    params: { cellChemistry: NMC, packSeriesParallel: "96s2p" }
+  powertrain:
+    impl: custom_units        # <-- declares Vehicle.Speed in mph; plant uses km/h
+  adas:
+    impl: adas_stub
+    params: { odd: { weather: [clear, light_rain], speedMaxKph: 80 } }
+  hmi:
+    impl: default
+  body:
+    impl: default
+scenarios:
+  - urban_drive

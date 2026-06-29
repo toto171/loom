@@ -7,11 +7,13 @@ import typer
 import yaml
 
 from loom import __version__
+from loom.assurance.sbom import write_vehicle_sboms
 from loom.compose.loader import load_composition, validate_composition_data
 from loom.compose.resolve import resolve_modules
 from loom.contracts.checker import check_composition
 from loom.contracts.report import render_report
 from loom.errors import GateRefused, LoomError, StaticCheckFailed
+from loom.paths import runs_dir
 from loom.plant.loader import load_plant
 from loom.run import execute_run
 from loom.sim.stimulus import ScenarioStimulus
@@ -118,7 +120,10 @@ def run(
         typer.secho("  monitor violations: none", fg=typer.colors.GREEN)
     typer.echo(f"  trace   : {out / 'trace.jsonl'}")
     typer.echo(f"  report  : {out / 'composition_report.txt'}")
-    typer.echo(f"  sbom    : {out / 'vehicle.cdx.json'} ({s['assurance']['sbomComponents']} components)")
+    typer.echo(
+        f"  sbom    : {out / 'vehicle.cdx.json'} ({s['assurance']['sbomComponents']} components, "
+        f"{len(s['assurance']['moduleSboms'])} per-module)"
+    )
     if outcome.gsn.defeated:
         typer.secho(
             f"  assurance: {out / 'assurance.gsn.yaml'}  (DEFEATED goals: {', '.join(s['assurance']['defeatedGoals'])})",
@@ -126,6 +131,30 @@ def run(
         )
     else:
         typer.echo(f"  assurance: {out / 'assurance.gsn.yaml'} (all goals supported)")
+
+
+@app.command()
+def sbom(
+    spec: Path = typer.Argument(..., help="Path to a vehicle composition spec."),
+    out: Path = typer.Option(
+        None, "--out", "-o", help="Output directory (default: runs/sbom-<vehicle>/)."
+    ),
+) -> None:
+    """Generate the vehicle + per-module CycloneDX SBOMs (no sim run)."""
+    try:
+        comp = load_composition(spec)
+        modules = resolve_modules(comp)
+    except LoomError as exc:
+        typer.secho(f"sbom failed: {exc}", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(2) from None
+
+    out_dir = out or (runs_dir() / f"sbom-{comp.name}")
+    result = write_vehicle_sboms(out_dir, comp.name, comp.vehicle_class, modules, comp.plant_impl)
+    typer.secho(f"sbom {comp.name}", fg=typer.colors.CYAN, bold=True)
+    typer.echo(f"  vehicle : {out_dir / result['vehicle']}")
+    typer.secho(f"  modules : {len(result['modules'])} per-module SBOM(s)", fg=typer.colors.GREEN)
+    for ref in result["modules"]:
+        typer.echo(f"    {out_dir / ref}")
 
 
 @app.command()

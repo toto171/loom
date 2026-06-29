@@ -7,6 +7,19 @@ All notable changes to Loom are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Per-module SBOMs.** Each contract's `sbomRef` (e.g. `sbom/bms.default.cdx.json`) now
+  resolves to a real artifact: alongside the aggregate vehicle SBOM, `loom run` writes one
+  CycloneDX SBOM per composed module under `runs/<id>/sbom/`, recorded in `run.json`'s
+  `assurance.moduleSboms`. Previously the `sbomRef` references dangled (only the aggregate
+  was generated). v0 scope is unchanged — module-level, not a transitive dependency scan.
+- **`loom sbom <spec>` command.** Emits the vehicle + per-module SBOMs to a directory
+  (`--out`, default `runs/sbom-<vehicle>/`) without running a simulation — for compliance
+  pipelines and CI. See [docs/cli.md](docs/cli.md).
+- **End-to-end `unit_consistency` demonstration.** A new `powertrain.custom_units` swap whose
+  contract declares it reads `Vehicle.Speed` in **mph** while the plant publishes it in
+  **km/h**, plus [`spec/vehicle.broken_units.yaml`](spec/vehicle.broken_units.yaml):
+  `loom check` fails with one precise `unit_consistency` error — the real-composition
+  counterpart to the synthetic checker fixtures.
 - **Multi-contributor structure & documentation.** A full `docs/` set
   ([architecture](docs/architecture.md), [contracts](docs/contracts.md),
   [safety-model](docs/safety-model.md), [extending](docs/extending.md), [cli](docs/cli.md),

@@ -39,4 +39,25 @@ class PowertrainDefault(Module):
         bus.publish(TORQUE_PATH, round(torque, 4), unit="Nm", producer=self.module_id)
 
 
-IMPLEMENTATIONS = {"default": PowertrainDefault}
+class PowertrainCustomUnits(PowertrainDefault):
+    """A powertrain swap that carries a genuine units defect.
+
+    Its contract declares it reads ``Vehicle.Speed`` in **mph**, but the plant
+    publishes that signal in **km/h**. The implementation is faithful to its
+    (wrong) contract — it converts the read value as if it were mph — so the bug
+    is real, not just a metadata typo. The static ``unit_consistency`` check
+    catches the mismatch and refuses the composition before it can ever run,
+    demonstrating the checker end-to-end (cf. ``spec/vehicle.broken_units.yaml``).
+    """
+
+    impl = "custom_units"
+
+    def step(self, t: float, dt: float, bus: Bus) -> None:
+        set_kph = float(bus.read(SPEED_SET_PATH, 0.0) or 0.0)
+        speed_mph = float(bus.read(SPEED_PATH, 0.0) or 0.0)  # contract says mph (it isn't)
+        error_mps = (set_kph / 3.6) - (speed_mph * 0.44704)
+        torque = max(-self.max_torque_nm, min(self.max_torque_nm, self.kp * error_mps))
+        bus.publish(TORQUE_PATH, round(torque, 4), unit="Nm", producer=self.module_id)
+
+
+IMPLEMENTATIONS = {"default": PowertrainDefault, "custom_units": PowertrainCustomUnits}

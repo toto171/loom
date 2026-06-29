@@ -17,7 +17,7 @@ from pathlib import Path
 import yaml
 
 from loom.assurance.gsn import Gsn, build_gsn, render_mermaid
-from loom.assurance.sbom import build_vehicle_sbom, sbom_component_count
+from loom.assurance.sbom import sbom_component_count, write_vehicle_sboms
 from loom.bus.shim import ShimBus
 from loom.compose.loader import load_composition
 from loom.compose.model import Composition
@@ -126,8 +126,8 @@ def execute_run(
         }
         (out / "revalidation.json").write_text(json.dumps(revalidation, indent=2), encoding="utf-8")
 
-    sbom_json = build_vehicle_sbom(comp.name, comp.vehicle_class, modules, comp.plant_impl)
-    (out / "vehicle.cdx.json").write_text(sbom_json, encoding="utf-8")
+    sboms = write_vehicle_sboms(out, comp.name, comp.vehicle_class, modules, comp.plant_impl)
+    sbom_json = sboms["vehicleJson"]
     gsn = build_gsn(
         comp, modules, report, result.violations,
         revalidated_swaps=decision.gated_swaps if revalidation else None,
@@ -158,6 +158,7 @@ def execute_run(
         "revalidation": revalidation,
         "assurance": {
             "sbomComponents": sbom_component_count(modules, comp.plant_impl),
+            "moduleSboms": sboms["modules"],
             "goals": sum(1 for n in gsn.nodes if n.type == "goal"),
             "defeatedGoals": [n.id for n in gsn.defeated],
         },

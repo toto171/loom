@@ -40,7 +40,7 @@ re-validation.</p>
       <td>
         <select name="impl_{{ sub }}">
           {% for i in impls %}
-          <option value="{{ i.impl }}">{{ i.impl }} — {{ i.safetyLevel }}</option>
+          <option value="{{ i.impl }}"{% if i.impl == 'default' %} selected{% endif %}>{{ i.impl }} — {{ i.safetyLevel }}</option>
           {% endfor %}
           <option value="(omit)">(omit subsystem)</option>
         </select>

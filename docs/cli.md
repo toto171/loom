@@ -1,13 +1,14 @@
 # CLI reference — `loom`
 
 The `loom` command is defined in [`loom/cli.py`](../loom/cli.py) (Typer) and installed by
-`pip install -e .`. The `validate`, `check`, and `run` commands take a path to a composition
-spec ([`vehicle.yaml`](contracts.md)); `version` takes no arguments.
+`pip install -e .`. The `validate`, `check`, `run`, and `sbom` commands take a path to a
+composition spec ([`vehicle.yaml`](contracts.md)); `version` takes no arguments.
 
 ```
 loom validate <spec>                 # JSON-Schema validation only
 loom check    <spec>                 # static contract check + report
 loom run      <spec> [--scenario S] [--revalidate]
+loom sbom     <spec> [--out DIR]     # vehicle + per-module CycloneDX SBOMs (no sim)
 loom version
 ```
 
@@ -75,6 +76,30 @@ loom run spec/vehicle.motoquant.yaml                               # higher-fide
 
 The exit codes are stable, so the same `loom run` drives both CI and the
 [dashboard](dashboard.md) (which maps exit 3 → HTTP 409).
+
+---
+
+## `loom sbom <spec> [--out DIR]`
+
+Generates the CycloneDX SBOMs for a composition **without** running a simulation — the
+aggregate vehicle SBOM (`vehicle.cdx.json`) plus one per-module SBOM under `sbom/`
+(`sbom/<module>.cdx.json`, the artifact each contract's [`sbomRef`](contracts.md) points at).
+Intended for compliance pipelines and CI that need the bill of modules + declared licenses
+on its own. Scope matches `loom run`: module-level, not a transitive dependency scan.
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--out`, `-o` | `runs/sbom-<vehicle>/` | output directory |
+
+| Exit | Meaning |
+|---|---|
+| 0 | SBOMs written (paths printed) |
+| 2 | load/resolution error (bad YAML, missing module, …) |
+
+```bash
+loom sbom spec/vehicle.example.yaml                 # -> runs/sbom-toy-ev-l7/
+loom sbom spec/vehicle.example.yaml --out build/sbom
+```
 
 ---
 

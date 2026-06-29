@@ -193,7 +193,8 @@ Two deliberate separations worth noting for newcomers:
 | `run.json` | summary: modules, scenario, steps, changed signals, violations, assurance |
 | `composition_report.txt` | the static-check report (signal graph + per-rule results) |
 | `violations.jsonl` | timestamped runtime monitor violations |
-| `vehicle.cdx.json` | CycloneDX SBOM (bill of modules + declared licenses) |
+| `vehicle.cdx.json` | aggregate CycloneDX SBOM (bill of modules + declared licenses) |
+| `sbom/<module>.cdx.json` | per-module CycloneDX SBOM — the artifact each contract's `sbomRef` points at |
 | `assurance.gsn.yaml` / `.mmd` | GSN assurance case (machine-readable + Mermaid) |
 | `revalidation.json` | record of re-validated below-line swaps — present **only** when `--revalidate` was used |
 

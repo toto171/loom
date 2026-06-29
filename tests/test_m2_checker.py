@@ -219,6 +219,25 @@ def test_unit_mismatch_both_declared_is_error():
     assert "unit_consistency" in _rules_with_errors(bad)
 
 
+def test_unit_consistency_demo_spec_fails_end_to_end():
+    # The shipped powertrain.custom_units swap declares Vehicle.Speed in mph while
+    # the plant publishes it in km/h: a real composition that fails on exactly one
+    # unit_consistency error (the end-to-end counterpart to the synthetic fixtures).
+    comp = load_composition(repo_root() / "spec" / "vehicle.broken_units.yaml")
+    plant = load_plant(comp.plant_impl, comp.plant_params)
+    modules = resolve_modules(comp)
+    report = check_composition(
+        comp.name, modules, plant=plant, stimulus_provides=ScenarioStimulus.provides
+    )
+    assert not report.ok
+    unit_errors = [i for i in report.errors if i.rule == "unit_consistency"]
+    assert len(unit_errors) == 1
+    msg = unit_errors[0].message
+    assert "Vehicle.Speed" in msg and "mph" in msg and "km/h" in msg
+    # the unit defect is the only error -> a clean single-root-cause demonstration
+    assert _rules_with_errors(report) == {"unit_consistency"}
+
+
 def test_license_non_osi_is_warning_not_error():
     report = check_participants("v", [
         _module("a.default", provides=[("Vehicle.X",)], license="LicenseRef-Proprietary"),

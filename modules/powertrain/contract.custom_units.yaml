@@ -1,0 +1,34 @@
+apiVersion: loom/v0
+kind: Contract
+module: powertrain.custom_units
+version: 0.1.0
+license: Apache-2.0
+safetyLevel: ASIL-B
+timing:
+  periodMs: 10
+  deadlineMs: 5
+signals:
+  provides:
+    - path: Vehicle.Powertrain.ElectricMotor.Torque
+      unit: Nm
+  requires:
+    - path: Vehicle.ADAS.CruiseControl.SpeedSet
+      unit: km/h
+    - path: Vehicle.Speed
+      unit: mph            # <-- deliberate unit defect: the plant publishes
+                           #     Vehicle.Speed in km/h. The static unit_consistency
+                           #     check refuses this composition before it can run.
+failureModes:
+  - id: torque_command_saturated
+    detect: "abs(torque_nm) >= max_torque_nm"
+    effect: degraded
+    mitigation: "clamp to torque envelope; flag reduced acceleration authority"
+assume:
+  - "Vehicle.ADAS.CruiseControl.SpeedSet within 0 and 130"
+guarantee:
+  - "commanded torque stays within the declared torque envelope"
+odd:
+  speedMaxKph: 130
+ai:
+  isAiComponent: false
+sbomRef: sbom/powertrain.custom_units.cdx.json

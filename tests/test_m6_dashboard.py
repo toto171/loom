@@ -56,6 +56,18 @@ def test_composed_run_end_to_end_produces_assurance():
         _cleanup(name)
 
 
+def test_compose_form_preselects_default_impl_not_first_sorted():
+    # Regression: impls render sorted, so a subsystem whose first-sorted impl is not
+    # `default` (powertrain's `custom_units` sorts ahead of `default`, and is a
+    # deliberately unit-broken demo) must still pre-select `default` — otherwise the
+    # browser auto-selects the first option and an untouched form composes the broken
+    # swap. The form marks the default option `selected` explicitly.
+    html = client.get("/compose").text
+    block = html.split('name="impl_powertrain"', 1)[1].split("</select>", 1)[0]
+    assert '<option value="default" selected>' in block
+    assert '<option value="custom_units" selected>' not in block
+
+
 def test_check_rejects_path_traversal():
     # A crafted spec param must not read files outside spec/.
     for bad in ["../README.md", "../scenarios/urban_drive.yaml", "../pyproject.toml"]:

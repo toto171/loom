@@ -25,9 +25,13 @@ Built with `cyclonedx-python-lib` (already a dependency). For v0 the SBOM is a
   (feeds UNECE R155/R156 + CRA SBOM obligations) — it does NOT yet resolve each
   module's transitive software dependencies. Stated in the file + README.
 
-Hook for the future: each contract's `sbomRef` points at where a richer
-per-module CycloneDX SBOM would live; M5 aggregates whatever exists and otherwise
-synthesizes the module-level component.
+Per-module SBOMs: each contract's `sbomRef` (e.g. `sbom/bms.default.cdx.json`)
+resolves to a real artifact. `build_module_sbom()` emits one single-component
+CycloneDX BOM per module (rooted at the module, sharing `_module_component` with
+the aggregate so the two agree); `write_vehicle_sboms()` writes the vehicle SBOM
+plus each module's under `runs/<id>/sbom/`, recorded in `run.json`'s
+`assurance.moduleSboms`. `loom sbom <spec>` produces the same bundle without a sim
+run. Same v0 scope — module-level, not a transitive dependency tree.
 
 ## 2. GSN assurance-case skeleton (`loom/assurance/gsn.py`)
 

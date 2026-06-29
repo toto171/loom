@@ -104,7 +104,7 @@ odd:                          # operational design domain assumptions
   ambientTempC: [-20, 60]
 ai:                           # present only for AI/ML modules (ISO 8800 / SOTIF hooks)
   isAiComponent: false
-sbomRef: sbom/bms.default.cdx.json   # where a richer per-module SBOM would live
+sbomRef: sbom/bms.default.cdx.json   # per-module SBOM, generated under runs/<id>/sbom/
 ```
 
 ### Field reference
@@ -123,7 +123,7 @@ sbomRef: sbom/bms.default.cdx.json   # where a richer per-module SBOM would live
 | `assume` / `guarantee` | — | predicates over the composition (prose or evaluable). |
 | `odd` | — | operational design domain bounds. |
 | `ai.isAiComponent` | — | gate for ISO/PAS 8800 fields on AI modules. |
-| `sbomRef` | — | pointer to a per-module SBOM (the aggregate SBOM is generated at run time). |
+| `sbomRef` | — | path to this module's SBOM; `loom run`/`loom sbom` generate it at `sbom/<module>.cdx.json` (alongside the aggregate `vehicle.cdx.json`). |
 
 ### Predicates and bindings
 
