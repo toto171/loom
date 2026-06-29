@@ -229,18 +229,21 @@ def test_toolchain_sbom_is_a_valid_transitive_cyclonedx_with_purls_and_edges():
     assert toolchain_component_count("loom") == len(data["components"])
 
     # the dependency EDGES are real, not just present (pins the register_dependency
-    # loop, not only resolve_closure): root -> loom, loom -> its installed runtime
-    # deps, and a deeper transitive edge.
+    # loop, not only resolve_closure): root -> loom, loom -> its declared runtime
+    # deps, and at least one deeper transitive edge.
     deps = {d["ref"]: sorted(d.get("dependsOn", [])) for d in data["dependencies"]}
     assert deps["toolchain:loom"] == ["loom"]
-    assert deps["loom"] == ["cyclonedx-python-lib", "fmpy", "jsonschema", "pyyaml", "typer"]
-    assert "rich" in deps["typer"]
-
-    # licenses are populated across the resolution tiers (id, name, expression)
-    def _lic(name):
-        return (comps[name]["licenses"] or [{}])[0]
-    assert _lic("typer").get("license", {}).get("id") == "MIT"  # PEP 639 expression -> id
-    assert _lic("cyclonedx-python-lib").get("license", {}).get("name") == "Apache Software License"  # OSI tier -> name
+    # loom's direct edges are exactly its declared runtime deps (this repo's pyproject).
+    assert deps["loom"] == [
+        "cyclonedx-python-lib", "fmpy", "jsonschema",
+        "packageurl-python", "packaging", "pyyaml", "typer",
+    ]
+    # genuinely transitive, not a flat list: some dep-of-loom carries its own edges.
+    assert any(deps.get(dep) for dep in deps["loom"])
+    # most components carry a license; the per-tier resolution (id / name / expression)
+    # is pinned deterministically by the _dist_license + _license unit tests below,
+    # which don't depend on the exact third-party versions CI happens to install.
+    assert sum(1 for c in comps.values() if c.get("licenses")) >= len(comps) - 3
 
 
 def test_dist_license_resolves_each_tier_and_skips_dumped_fulltext():
@@ -292,8 +295,11 @@ def test_toolchain_sbom_is_deterministic():
 def test_toolchain_closure_is_runtime_only_not_dev_or_dashboard_extras():
     nodes, edges = resolve_closure("loom")
     keys = set(nodes)
-    # loom's own direct deps are exactly the 5 declared runtime requirements
-    assert set(edges["loom"]) == {"typer", "jsonschema", "pyyaml", "cyclonedx-python-lib", "fmpy"}
+    # loom's own direct deps are exactly its declared runtime requirements
+    assert set(edges["loom"]) == {
+        "typer", "jsonschema", "pyyaml", "cyclonedx-python-lib", "fmpy",
+        "packaging", "packageurl-python",
+    }
     # dev/dashboard/compose extras must NOT leak into the runtime closure
     for extra in ("pytest", "ruff", "httpx", "fastapi", "uvicorn", "kuksa-client"):
         assert extra not in keys
