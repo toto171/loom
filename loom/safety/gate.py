@@ -14,6 +14,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from loom.errors import LoomError
+
 _ABSENT = "(absent)"
 _UNKNOWN_ASIL = "ASIL (unspecified)"  # fail-safe: a malformed lock entry gates rather than slips through
 
@@ -81,7 +83,9 @@ def detect_swaps(current: dict[str, dict], lock: dict | None) -> list[Swap]:
         elif cur and not prev:  # subsystem added since the baseline
             swaps.append(Swap(subsystem, _ABSENT, cur["impl"], "", cur["safetyLevel"]))
         elif prev and not cur:  # subsystem removed since the baseline
-            swaps.append(Swap(subsystem, prev.get("impl", "?"), _ABSENT, prev.get("safetyLevel") or "", ""))
+            # A missing locked safetyLevel on a removal also fails SAFE (gated),
+            # matching the changed-impl branch above.
+            swaps.append(Swap(subsystem, prev.get("impl", "?"), _ABSENT, prev.get("safetyLevel") or _UNKNOWN_ASIL, ""))
     return swaps
 
 
@@ -97,10 +101,28 @@ def gate(swaps: list[Swap], revalidate: bool) -> GateDecision:
 
 
 def load_lock(path: str | Path) -> dict | None:
+    """Load the validated-baseline lock, failing SAFE on corruption.
+
+    locks/ is committed, hand-editable, merge-conflict-prone state, so a corrupt
+    or non-object lock raises a domain error (the run fails closed — a swap is
+    never allowed through an untrusted baseline) rather than crashing with a raw
+    traceback or being silently treated as absent."""
     path = Path(path)
     if not path.exists():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, ValueError, OSError) as exc:
+        raise LoomError(
+            f"safety lock {path} is corrupt/unparseable ({exc}); the validated baseline "
+            "cannot be trusted — restore it or delete it to re-establish a baseline"
+        ) from exc
+    if not isinstance(data, dict):
+        raise LoomError(
+            f"safety lock {path} is not a JSON object (got {type(data).__name__}); "
+            "the validated baseline cannot be trusted"
+        )
+    return data
 
 
 def write_lock(path: str | Path, vehicle: str, current: dict[str, dict]) -> None:

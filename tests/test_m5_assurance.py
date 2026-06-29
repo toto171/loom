@@ -45,7 +45,7 @@ def test_gsn_nominal_run_all_goals_supported():
     comp, modules, report = _setup()
     gsn = build_gsn(comp, modules, report, violations=[])
     ids = {n.id for n in gsn.nodes}
-    assert {"G1", "C1", "S1", "G-static", "G-bms"} <= ids
+    assert {"G1", "C1", "S1", "G-static", "G-mod-bms.default"} <= ids
     assert not gsn.defeated  # clean run -> nothing defeated
     mmd = render_mermaid(gsn)
     assert mmd.startswith("flowchart TD") and "G1" in mmd
@@ -56,18 +56,18 @@ def test_gsn_goal_defeated_by_monitor_violation_propagates_to_top():
     v = Violation(t=1.0, module="bms.default", monitor_id="soc_estimate_drift",
                   kind="failure_detected", message="drift")
     gsn = build_gsn(comp, modules, report, violations=[v])
-    g_bms = next(n for n in gsn.nodes if n.id == "G-bms")
+    g_bms = next(n for n in gsn.nodes if n.id == "G-mod-bms.default")
     top = next(n for n in gsn.nodes if n.id == "G1")
     assert g_bms.status == "defeated"
     assert top.status == "defeated"  # a defeated sub-goal defeats the top goal
-    assert "G-bms" in {n.id for n in gsn.defeated}
+    assert "G-mod-bms.default" in {n.id for n in gsn.defeated}
 
 
 def test_swapping_a_module_visibly_changes_the_gsn():
     comp_d, mods_d, rep_d = _setup("vehicle.example.yaml")
     comp_s, mods_s, rep_s = _setup("vehicle.swap_bms.yaml")
-    text_default = next(n.text for n in build_gsn(comp_d, mods_d, rep_d, []).nodes if n.id == "G-bms")
-    text_swapped = next(n.text for n in build_gsn(comp_s, mods_s, rep_s, []).nodes if n.id == "G-bms")
+    text_default = next(n.text for n in build_gsn(comp_d, mods_d, rep_d, []).nodes if n.id == "G-mod-bms.default")
+    text_swapped = next(n.text for n in build_gsn(comp_s, mods_s, rep_s, []).nodes if n.id == "G-mod-bms.custom_x")
     assert "bms.default" in text_default
     assert "bms.custom_x" in text_swapped
     assert text_default != text_swapped

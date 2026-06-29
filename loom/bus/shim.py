@@ -40,7 +40,9 @@ class ShimBus(Bus):
         return default if cell is None else cell.value
 
     def snapshot(self) -> dict[str, Any]:
-        return {path: cell.value for path, cell in self._cells.items()}
+        # Sorted key order: deterministic and identical to KuksaBus.snapshot(), so
+        # in-process and distributed traces are byte-comparable.
+        return {p: self._cells[p].value for p in sorted(self._cells)}
 
     def paths(self) -> list[str]:
         return sorted(self._cells)

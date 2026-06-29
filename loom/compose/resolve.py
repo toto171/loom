@@ -21,6 +21,11 @@ from loom.paths import modules_dir
 
 _IMPL_REGISTRY_ATTR = "IMPLEMENTATIONS"
 
+# Cache loaded service modules by (resolved path, mtime) so a subsystem's service.py
+# is exec'd at most once and re-exec'd only when the file changes — list_subsystems()
+# and resolve_modules() otherwise re-import the same source repeatedly per impl.
+_SERVICE_CACHE: dict[str, tuple[int, Any]] = {}
+
 
 @dataclass
 class ResolvedModule:
@@ -40,6 +45,11 @@ def _load_service(subsystem: str, mod_dir: Path):
         raise ModuleResolutionError(
             f"subsystem '{subsystem}': no service.py at {service_py}"
         )
+    key = str(service_py.resolve())
+    mtime = service_py.stat().st_mtime_ns
+    cached = _SERVICE_CACHE.get(key)
+    if cached is not None and cached[0] == mtime:
+        return cached[1]
     mod_name = f"loom_modules.{subsystem}.service"
     spec = importlib.util.spec_from_file_location(mod_name, service_py)
     if spec is None or spec.loader is None:
@@ -47,10 +57,15 @@ def _load_service(subsystem: str, mod_dir: Path):
     py = importlib.util.module_from_spec(spec)
     sys.modules[mod_name] = py
     spec.loader.exec_module(py)
+    _SERVICE_CACHE[key] = (mtime, py)
     return py
 
 
 def _contract_path(impl: str, mod_dir: Path) -> Path:
+    # A subsystem's base contract.yaml may belong to a single non-default impl (e.g.
+    # adas.adas_stub), so the fallback is legitimate — but resolve_module asserts the
+    # loaded contract's `module` matches the resolved impl, so a non-default impl can
+    # never silently inherit a DIFFERENT impl's contract (and its safety level).
     if impl == "default":
         default = mod_dir / "contract.yaml"
         if default.exists():
@@ -78,6 +93,14 @@ def resolve_module(
             f"(available: {available})"
         )
     contract = load_contract(_contract_path(impl, mod_dir))
+    # Defense in depth: the resolved contract must declare THIS module's identity, so
+    # a mismatched/copy-pasted contract can't smuggle in a wrong safety level.
+    expected = f"{subsystem}.{impl}"
+    if contract.module != expected:
+        raise ModuleResolutionError(
+            f"subsystem '{subsystem}': implementation '{impl}' resolves to a contract "
+            f"declaring module '{contract.module}' (expected '{expected}')"
+        )
     instance = registry[impl](params or {})
     if not isinstance(instance, Module):
         raise ModuleResolutionError(f"{subsystem}.{impl} is not a loom Module")

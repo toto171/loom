@@ -8,6 +8,7 @@ the same per-tick prelude. These are non-module signal producers (producer label
 """
 from __future__ import annotations
 
+import bisect
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -50,9 +51,29 @@ class ScenarioStimulus:
 
     def __init__(self, scenario: Scenario) -> None:
         self.scenario = scenario
+        # Parse + sort the drive-cycle ONCE (the profile is immutable for the run),
+        # then bisect per tick — instead of re-sorting/re-parsing on every apply().
+        pts = sorted(
+            (float(p["t"]), float(p.get("targetSpeedKph", 0.0))) for p in scenario.profile
+        )
+        self._ts = [p[0] for p in pts]
+        self._vs = [p[1] for p in pts]
+
+    def _target(self, t: float) -> float:
+        ts, vs = self._ts, self._vs
+        if not ts:
+            return 0.0
+        if t <= ts[0]:
+            return vs[0]
+        if t >= ts[-1]:
+            return vs[-1]
+        i = bisect.bisect_right(ts, t)
+        t0, t1 = ts[i - 1], ts[i]
+        v0, v1 = vs[i - 1], vs[i]
+        return v1 if t1 == t0 else v0 + (t - t0) / (t1 - t0) * (v1 - v0)
 
     def apply(self, t: float, bus: Bus) -> None:
-        target_kph = interpolate_profile(self.scenario.profile, t)
+        target_kph = self._target(t)
         bus.publish(SPEED_SET_PATH, round(target_kph, 4), unit="km/h", producer=PRODUCER)
         bus.publish(CRUISE_ACTIVE_PATH, True, producer=PRODUCER)
         bus.publish(CHARGING_PATH, False, producer=PRODUCER)

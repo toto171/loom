@@ -41,38 +41,48 @@ def drive(
     for module in modules:
         module.start(bus)
 
-    truth: dict = dict(plant.truth()) if plant is not None else {}
-    if stimulus is not None:
-        stimulus.apply(0.0, bus)
-    if faults is not None:
-        faults.apply(0.0, bus)
-    if monitors is not None:
-        monitors.evaluate(0.0, bus, truth)
-    trace.record(0.0, bus.snapshot())
-
-    dt = scenario.dt_s
     steps = scenario.num_steps
-    for i in range(1, steps + 1):
-        t = i * dt
+    try:
+        truth: dict = dict(plant.truth()) if plant is not None else {}
         if stimulus is not None:
-            stimulus.apply(t, bus)
-        if plant is not None:
-            plant.step(t, dt, bus)
-            truth = dict(plant.truth())
+            stimulus.apply(0.0, bus)
         if faults is not None:
-            faults.apply(t, bus)
-        crashed = faults.crashed_modules(t) if faults is not None else set()
-        for module in modules:
-            if module.module_id not in crashed:
-                module.step(t, dt, bus)
+            faults.apply(0.0, bus)
         if monitors is not None:
-            monitors.evaluate(t, bus, truth)
-        trace.record(t, bus.snapshot())
+            monitors.evaluate(0.0, bus, truth)
+        trace.record(0.0, bus.snapshot())
 
-    for module in modules:
-        module.stop()
-    if plant is not None:
-        plant.stop()
+        dt = scenario.dt_s
+        for i in range(1, steps + 1):
+            t = i * dt
+            if stimulus is not None:
+                stimulus.apply(t, bus)
+            if plant is not None:
+                plant.step(t, dt, bus)
+                truth = dict(plant.truth())
+            if faults is not None:
+                faults.apply(t, bus)
+            crashed = faults.crashed_modules(t) if faults is not None else set()
+            for module in modules:
+                if module.module_id not in crashed:
+                    module.step(t, dt, bus)
+            if monitors is not None:
+                monitors.evaluate(t, bus, truth)
+            trace.record(t, bus.snapshot())
+    finally:
+        # Always honor the start()/stop() lifecycle, even on a mid-run exception.
+        # Guard each stop() so one failure neither masks the original error nor
+        # skips the remaining cleanups.
+        for module in modules:
+            try:
+                module.stop()
+            except Exception:
+                pass
+        if plant is not None:
+            try:
+                plant.stop()
+            except Exception:
+                pass
 
     return RunResult(
         orchestrator=name,

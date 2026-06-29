@@ -33,7 +33,15 @@ class KuksaBus(Bus):
             from kuksa_client.grpc import VSSClient  # imported lazily; needs a live broker
 
             client = VSSClient(self.host, self.port)
-            client.connect()
+            try:
+                client.connect()
+            except Exception:
+                # Don't leak a half-open client/channel if the handshake fails.
+                try:
+                    client.disconnect()
+                except Exception:
+                    pass
+                raise
             self._client = client
         return self
 
@@ -63,7 +71,7 @@ class KuksaBus(Bus):
             return {}
         values = self._client.get_current_values(sorted(self._known))
         out: dict[str, Any] = {}
-        for path in self._known:
+        for path in sorted(self._known):  # deterministic key order (matches ShimBus + paths())
             dp = values.get(path)
             out[path] = dp.value if dp is not None else None
         return out

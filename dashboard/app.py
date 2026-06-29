@@ -93,7 +93,7 @@ def home(request: Request):
         "subsystems": catalog.list_subsystems(),
         "specs": catalog.list_specs(),
         "scenarios": catalog.list_scenarios(),
-        "runs": catalog.list_runs()[:12],
+        "runs": catalog.list_runs(limit=12),
     })
 
 
@@ -120,9 +120,12 @@ def run_spec(request: Request, spec: str = Form(...), scenario: str = Form(""),
 
 @app.post("/run/revalidate")
 def run_revalidate(request: Request, spec_path: str = Form(...), scenario: str = Form("")):
-    """Re-run a refused spec with --revalidate. Guards the path to within the repo."""
+    """Re-run a refused spec with --revalidate. Confine the path to the only two dirs
+    the legitimate refused-run flow can produce: spec/ and runs/.composed/."""
     target = Path(spec_path).resolve()
-    if repo_root() not in target.parents:
+    spec_dir = (repo_root() / "spec").resolve()
+    composed_dir = (runs_dir() / ".composed").resolve()
+    if not (target.is_relative_to(spec_dir) or target.is_relative_to(composed_dir)):
         return _page(request, "error.html", {
             "title": "Invalid spec path", "detail": spec_path,
             "spec": None, "scenario": None, "show_revalidate": False,

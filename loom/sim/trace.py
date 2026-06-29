@@ -19,14 +19,21 @@ class Trace:
         return [(r["t"], r["signals"][path]) for r in self.rows if path in r["signals"]]
 
     def changed_signals(self) -> dict[str, tuple[Any, Any]]:
-        """Map each path whose value changed over the run to (first, last)."""
+        """Map each path that EVER differed from its first-seen value to (first, last).
+
+        Tracks any deviation (not just first-vs-last), so a transient perturbation
+        that recovers — e.g. a dropout fault that returns to the prior value — is
+        still reported."""
         first: dict[str, Any] = {}
         last: dict[str, Any] = {}
+        changed: set[str] = set()
         for row in self.rows:
             for path, value in row["signals"].items():
                 first.setdefault(path, value)
                 last[path] = value
-        return {p: (first[p], last[p]) for p in first if first[p] != last[p]}
+                if value != first[path]:
+                    changed.add(path)
+        return {p: (first[p], last[p]) for p in changed}
 
     def write_jsonl(self, path: str | Path) -> None:
         path = Path(path)

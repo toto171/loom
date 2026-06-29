@@ -77,21 +77,35 @@ def build_gsn(comp, modules, report, violations, revalidated_swaps=None) -> Gsn:
 
     for m in modules:
         c = m.contract
-        sub = m.subsystem
+        # Namespace per-module ids by module_id (which always contains a '.'), so they
+        # can never collide with the reserved fixed nodes G-static / G-swap even if a
+        # subsystem is literally named 'static' or 'swap'.
+        gid = f"G-mod-{m.module_id}"
         vs = viol_by_module.get(m.module_id, [])
         defeated = bool(vs)
-        g.add(GsnNode(f"G-{sub}", "goal", f"{m.module_id} [{c.safety_level}] meets its contract.",
+        g.add(GsnNode(gid, "goal", f"{m.module_id} [{c.safety_level}] meets its contract.",
                       status="defeated" if defeated else "supported"))
-        g.link("S1", f"G-{sub}", "supportedBy")
+        g.link("S1", gid, "supportedBy")
         for i, assumption in enumerate(c.assume):
-            g.add(GsnNode(f"A-{sub}-{i}", "assumption", assumption))
-            g.link(f"G-{sub}", f"A-{sub}-{i}", "inContextOf")
+            g.add(GsnNode(f"A-{m.module_id}-{i}", "assumption", assumption))
+            g.link(gid, f"A-{m.module_id}-{i}", "inContextOf")
         if vs:
             ids = "; ".join(sorted({v.monitor_id for v in vs}))
-            g.add(GsnNode(f"Sn-mon-{sub}", "solution", f"Runtime monitor: {len(vs)} violation(s) [{ids}].", status="defeated"))
+            g.add(GsnNode(f"Sn-mon-{m.module_id}", "solution", f"Runtime monitor: {len(vs)} violation(s) [{ids}].", status="defeated"))
         else:
-            g.add(GsnNode(f"Sn-mon-{sub}", "solution", "Runtime monitors: no violation observed."))
-        g.link(f"G-{sub}", f"Sn-mon-{sub}", "supportedBy")
+            g.add(GsnNode(f"Sn-mon-{m.module_id}", "solution", "Runtime monitors: no violation observed."))
+        g.link(gid, f"Sn-mon-{m.module_id}", "supportedBy")
+
+    # A violation whose module is not among the composed modules must not vanish:
+    # surface it as a defeated solution so the top goal is honestly defeated.
+    composed_ids = {m.module_id for m in modules}
+    orphaned = [v for key, vs in viol_by_module.items() if key not in composed_ids for v in vs]
+    if orphaned:
+        ids = "; ".join(sorted({f"{v.module}/{v.monitor_id}" for v in orphaned}))
+        g.add(GsnNode("Sn-mon-unmapped", "solution",
+                      f"Unmapped runtime violations: {len(orphaned)} from module(s) not in the argument [{ids}].",
+                      status="defeated"))
+        g.link("S1", "Sn-mon-unmapped", "supportedBy")
 
     if revalidated_swaps:
         g.add(GsnNode("G-swap", "goal", "Below-line implementation swaps were re-validated."))

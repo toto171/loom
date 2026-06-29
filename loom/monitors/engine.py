@@ -104,10 +104,13 @@ class MonitorEngine:
     def evaluate(self, t: float, bus: Bus, truth: dict[str, Any] | None = None) -> list[Violation]:
         fired: list[Violation] = []
         for mon in self.monitors:
-            variables = resolve_bindings(mon.bindings, bus, truth)
+            # Resolve bindings INSIDE the try: a malformed binding (non-numeric
+            # const:, unknown scheme) must be contained as this monitor's
+            # monitor_error, never crash the tick and drop every other violation.
             try:
+                variables = resolve_bindings(mon.bindings, bus, truth)
                 result = evaluate(mon.detect, variables)
-            except PredicateError as exc:
+            except (PredicateError, ValueError) as exc:
                 fired.append(
                     Violation(
                         t=round(float(t), 6),
@@ -139,6 +142,19 @@ class MonitorEngine:
                         kind="failure_detected",
                         message=f"{mon.module}/{mon.monitor_id}: failure condition met "
                         f"[{mon.detect}] (effect: {mon.effect})",
+                    )
+                )
+            elif not isinstance(result, bool):
+                # A detect that evaluates to a non-boolean (e.g. a bare number) would
+                # otherwise vanish silently; surface it as a malformed-monitor error.
+                fired.append(
+                    Violation(
+                        t=round(float(t), 6),
+                        module=mon.module,
+                        monitor_id=mon.monitor_id,
+                        kind="monitor_error",
+                        message=f"{mon.module}/{mon.monitor_id}: detect predicate "
+                        f"[{mon.detect}] did not evaluate to a boolean (got {result!r})",
                     )
                 )
         self.violations.extend(fired)

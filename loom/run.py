@@ -9,6 +9,7 @@ returns a structured RunOutcome. Failures are raised as domain exceptions
 from __future__ import annotations
 
 import json
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -24,7 +25,7 @@ from loom.compose.model import Composition
 from loom.compose.resolve import ResolvedModule, resolve_modules
 from loom.contracts.checker import CheckReport, check_composition
 from loom.contracts.report import render_report
-from loom.errors import GateRefused, StaticCheckFailed
+from loom.errors import GateRefused, LoomError, StaticCheckFailed
 from loom.monitors.engine import MonitorEngine
 from loom.orchestrator.base import RunResult
 from loom.orchestrator.inprocess import InProcessOrchestrator
@@ -103,14 +104,25 @@ def execute_run(
         monitors=monitors,
     )
 
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
+    # Microsecond-resolution stamp + exist_ok=False so two same-second runs of the
+    # same vehicle never silently overwrite each other's artifacts (retry on the
+    # vanishingly-rare microsecond collision).
+    now = datetime.now(UTC)
+    stamp = now.strftime("%Y%m%dT%H%M%S") + f"{now.microsecond:06d}"
     run_id = f"{stamp}-{comp.name}"
     out = runs_dir() / run_id
-    out.mkdir(parents=True, exist_ok=True)
+    for _attempt in range(8):
+        try:
+            out.mkdir(parents=True, exist_ok=False)
+            break
+        except FileExistsError:
+            run_id = f"{stamp}-{uuid.uuid4().hex[:6]}-{comp.name}"
+            out = runs_dir() / run_id
+    else:
+        raise LoomError(f"could not allocate a unique run directory for '{comp.name}'")
     trace.write_jsonl(out / "trace.jsonl")
     (out / "composition_report.txt").write_text(render_report(report), encoding="utf-8")
 
-    write_lock(lock_path, comp.name, current)
     revalidation = None
     if decision.gated_swaps:
         revalidation = {
@@ -178,6 +190,11 @@ def execute_run(
         },
     }
     (out / "run.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    # Advance the validated-baseline lock LAST (atomic write), so the safety baseline
+    # only moves forward once every artifact — especially run.json — is durably on
+    # disk. A mid-run failure leaves the lock un-advanced and the swap stays gated.
+    write_lock(lock_path, comp.name, current)
 
     return RunOutcome(
         run_id=run_id, run_dir=out, composition=comp, scenario_name=scen.name,

@@ -38,7 +38,7 @@ from dataclasses import dataclass, field
 
 from loom.contracts.model import Signal
 
-_VSS_TOKEN = re.compile(r"Vehicle(?:\.[A-Za-z0-9]+)+")
+_VSS_TOKEN = re.compile(r"Vehicle(?:\.[A-Za-z0-9_]+)+")  # VSS leaf names may contain underscores
 
 RULES = (
     "producer_uniqueness",
@@ -178,12 +178,22 @@ def check_participants(vehicle: str, participants: list[Participant]) -> CheckRe
 
     # producer_uniqueness
     for path, prods in sorted(producers.items()):
-        if len(prods) > 1:
+        names = [n for n, _ in prods]
+        if len(set(names)) > 1:
             issues.append(
                 CheckIssue(
                     "error",
                     "producer_uniqueness",
-                    f"signal '{path}' has multiple producers: {', '.join(n for n, _ in prods)}",
+                    f"signal '{path}' has multiple producers: {', '.join(sorted(set(names)))}",
+                    path,
+                )
+            )
+        elif len(prods) > 1:  # one participant declared the same provides path twice
+            issues.append(
+                CheckIssue(
+                    "warning",
+                    "producer_uniqueness",
+                    f"{names[0]} declares provides '{path}' more than once",
                     path,
                 )
             )

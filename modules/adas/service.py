@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 SPEED_PATH = "Vehicle.Speed"
 CRUISE_ACTIVE_PATH = "Vehicle.ADAS.CruiseControl.IsActive"
 LKA_ENGAGED_PATH = "Vehicle.ADAS.LaneKeepingAssist.IsEngaged"
+ODD_SPEED_MAX_PATH = "Vehicle.ADAS.LaneKeepingAssist.OddSpeedMaxKph"
 
 
 class AdasStub(Module):
@@ -32,12 +33,17 @@ class AdasStub(Module):
 
     def start(self, bus: Bus) -> None:
         bus.publish(LKA_ENGAGED_PATH, False, producer=self.module_id)
+        # Publish the EFFECTIVE ODD bound so the odd_exit monitor tracks the module's
+        # configured value (the contract binds odd_speed_max_kph to this signal),
+        # instead of a hard-coded constant that diverges when params override it.
+        bus.publish(ODD_SPEED_MAX_PATH, self.speed_max_kph, unit="km/h", producer=self.module_id)
 
     def step(self, t: float, dt: float, bus: Bus) -> None:
         speed_kph = float(bus.read(SPEED_PATH, 0.0) or 0.0)
         cruise_active = bool(bus.read(CRUISE_ACTIVE_PATH, False))
         in_odd = 0.0 <= speed_kph <= self.speed_max_kph
         bus.publish(LKA_ENGAGED_PATH, bool(cruise_active and in_odd), producer=self.module_id)
+        bus.publish(ODD_SPEED_MAX_PATH, self.speed_max_kph, unit="km/h", producer=self.module_id)
 
 
 IMPLEMENTATIONS = {"adas_stub": AdasStub}

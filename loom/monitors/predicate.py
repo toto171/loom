@@ -70,7 +70,12 @@ def evaluate(expr: str, variables: dict[str, Any]) -> Any:
         tree = ast.parse(expr, mode="eval")
     except SyntaxError as exc:
         raise PredicateError(f"invalid predicate {expr!r}: {exc}") from exc
-    return _eval(tree.body, variables)
+    except RecursionError as exc:  # a pathologically deep expression -> contained
+        raise PredicateError(f"predicate too deeply nested: {expr!r}") from exc
+    try:
+        return _eval(tree.body, variables)
+    except RecursionError as exc:
+        raise PredicateError(f"predicate too deeply nested: {expr!r}") from exc
 
 
 def referenced_names(expr: str) -> set[str]:
@@ -81,6 +86,8 @@ def referenced_names(expr: str) -> set[str]:
         tree = ast.parse(expr, mode="eval")
     except SyntaxError as exc:
         raise PredicateError(f"invalid predicate {expr!r}: {exc}") from exc
+    except RecursionError as exc:
+        raise PredicateError(f"predicate too deeply nested: {expr!r}") from exc
     call_func_ids = {
         id(node.func)
         for node in ast.walk(tree)

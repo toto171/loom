@@ -10,6 +10,8 @@ timing:
 signals:
   provides:
     - path: Vehicle.ADAS.LaneKeepingAssist.IsEngaged
+    - path: Vehicle.ADAS.LaneKeepingAssist.OddSpeedMaxKph   # the module's effective ODD bound
+      unit: km/h
   requires:
     - path: Vehicle.Speed
       unit: km/h
@@ -21,7 +23,9 @@ failureModes:
     mitigation: "disengage LKA and request driver takeover on ODD exit"
 bindings:
   speed_kph: signal:Vehicle.Speed
-  odd_speed_max_kph: const:80
+  # Bind to the module's published ODD bound so a params override is honored
+  # (rather than a const that silently diverges from the configured value).
+  odd_speed_max_kph: signal:Vehicle.ADAS.LaneKeepingAssist.OddSpeedMaxKph
   lka_engaged: signal:Vehicle.ADAS.LaneKeepingAssist.IsEngaged
 assume:
   - "Vehicle.Speed is available and plausible within the declared ODD"

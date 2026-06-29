@@ -30,7 +30,11 @@ class HmiDefault(Module):
         bus.publish(LOW_BATTERY_WARNING_PATH, False, producer=self.module_id)
 
     def step(self, t: float, dt: float, bus: Bus) -> None:
-        soc = float(bus.read(SOC_PATH, 100.0) or 100.0)
+        # Default to 100.0 only when the SoC path is genuinely unset — NOT via `or`,
+        # which would treat a real, fully-depleted 0.0 as 100.0 and suppress the
+        # warning at the most critical moment.
+        raw = bus.read(SOC_PATH)
+        soc = float(raw) if raw is not None else 100.0
         warn = soc < self.low_battery_threshold_pct
         bus.publish(LOW_BATTERY_WARNING_PATH, bool(warn), producer=self.module_id)
 
